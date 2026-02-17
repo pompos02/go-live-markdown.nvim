@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Go Live Markdown</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <article class="md-root">{{CONTENT}}</article>
+
+  <script>
+    (function () {
+      var root = document.querySelector(".md-root");
+      if (!root) return;
+
+      var socket = null;
+      var retryTimer = null;
+
+      function connect() {
+        var proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+        var url = proto + "//" + window.location.host + "/ws";
+        socket = new WebSocket(url);
+
+        socket.onmessage = function (event) {
+          var msg;
+          try {
+            msg = JSON.parse(event.data);
+          } catch (_) {
+            return;
+          }
+
+          if (msg.type === "render" && typeof msg.html === "string") {
+            root.innerHTML = msg.html;
+          }
+        };
+
+        socket.onerror = function () {
+          socket.close();
+        };
+
+        socket.onclose = function () {
+          if (retryTimer) clearTimeout(retryTimer);
+          retryTimer = setTimeout(connect, 500);
+        };
+      }
+
+      connect();
+    })();
+  </script>
+</body>
+</html>
