@@ -32,8 +32,8 @@ func Register(p *plugin.Plugin) error {
 	p.HandleCommand(&plugin.CommandOptions{
 		Name: "GoLiveMarkdownStart",
 	}, commands.GoLiveMarkdownStart)
-	p.HandleCommand(&plugin.CommandOptions{
-		Name: "GoLiveMarkdownUpdate",
+	p.HandleFunction(&plugin.FunctionOptions{
+		Name: "GoLiveMarkdownInternalUpdate",
 	}, commands.GoLiveMarkdownUpdate)
 	return nil
 }
