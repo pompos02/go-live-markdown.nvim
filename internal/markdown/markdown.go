@@ -23,19 +23,19 @@ var pageTemplate string
 
 func NewRenderer() *Renderer {
 	md := goldmark.New(
-        goldmark.WithExtensions(
-            alertcallouts.NewAlertCallouts( // Alerts !NOTES, !IMPORTANT e.t.c
-                alertcallouts.UseGFMStrictIcons(),
-                alertcallouts.WithFolding(true),
-            ),
-			&mermaid.Extender{ },
+		goldmark.WithExtensions(
+			alertcallouts.NewAlertCallouts( // Alerts !NOTES, !IMPORTANT e.t.c
+				alertcallouts.UseGFMStrictIcons(),
+				alertcallouts.WithFolding(true),
+			),
+			&mermaid.Extender{},
 			extension.GFM,                  // GitHub Flavored Markdown
 			extension.Table,                // Tables
 			extension.Strikethrough,        // ~~text~~
 			extension.TaskList,             // - [x] tasks
 			extension.Linkify,              // auto links
 			highlighting.NewHighlighting(), // Syntax highlighting
-        ),
+		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(), // Auto IDs for headings
 		),
@@ -46,15 +46,23 @@ func NewRenderer() *Renderer {
 	return &Renderer{md: md}
 }
 
-func (r *Renderer) RenderPage(source []byte) (string, error) {
+func (r *Renderer) ConvertFragment(source []byte) (string, error) {
 	var buf bytes.Buffer
-
-	err := r.md.Convert(source, &buf)
-	if err != nil {
+	if err := r.md.Convert(source, &buf); err != nil {
 		return "", err
 	}
 
-	fullHTML := strings.Replace(pageTemplate, "{{CONTENT}}", buf.String(), 1)
+	return buf.String(), nil
+}
 
-	return fullHTML, nil
+func (r *Renderer) RenderPage(source []byte) (string, error) {
+	fragment, err := r.ConvertFragment(source)
+	if err != nil {
+		return "", err
+	}
+	return strings.Replace(pageTemplate, "{{CONTENT}}", fragment, 1), nil
+}
+
+func (r *Renderer) RenderShell() string {
+	return strings.Replace(pageTemplate, "{{CONTENT}}", "", 1)
 }
