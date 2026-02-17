@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -e
+
+mkdir -p bin plugin
+
+echo "[build] building the go binary"
+go build -o ./bin/go-live-markdown-nvim ./cmd/go-live-markdown-nvim
+echo "[build] creating the manifest file"
+./bin/go-live-markdown-nvim --manifest go_live_markdown > ./plugin/go_live_markdown.vim
