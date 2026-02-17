@@ -10,16 +10,20 @@ import (
 	"github.com/neovim/go-client/nvim/plugin"
 )
 
+// Commands is a state container for Neovim command handlers.
+// It tracks the active buffer and delegates preview functionality
+// to the LivePreview service.
 type Commands struct {
-	preview      *app.LivePreview
+	preview      *app.LivePreview // Live preview service
 	active       bool
-	activeBuffer nvim.Buffer
+	activeBuffer nvim.Buffer // Currently active buffer
 }
 
 func NewCommands() *Commands {
 	return &Commands{preview: app.NewLivePreview("127.0.0.1:7777")}
 }
 
+// Registering the actualy nvim commnads
 func Register(p *plugin.Plugin) error {
 	commands := NewCommands()
 	p.Handle("poll", func() (string, error) {
@@ -41,6 +45,8 @@ func (c *Commands) GoLiveMarkdownStart(v *nvim.Nvim) error {
 	}
 	c.active = true
 	c.activeBuffer = buf
+
+	// Send the buffer content to the live preview server
 	if err := c.publishBuffer(v, buf); err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ import (
 	httptransport "go-live-markdown/internal/transport/http"
 )
 
+// Coordinator between markdown rendering and HTTP delivery
 type LivePreview struct {
 	renderer *render.Renderer
 	preview  *httptransport.Manager

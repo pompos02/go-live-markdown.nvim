@@ -8,24 +8,27 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// JSON message sent to browser via the WebSocket
 type renderMessage struct {
 	Type string `json:"type"`
 	HTML string `json:"html"`
 }
 
+// Central coordinator for HTTP server and WebSocket connections
 type Manager struct {
-	addr  string
-	shell string
+	addr  string // Server adrress
+	shell string // HTML template (with the {{CONTENT}} palceholder)
 
-	started bool
+	started bool // is server running?
 	server  *http.Server
 
-	updates    chan string
-	register   chan *websocket.Conn
-	unregister chan *websocket.Conn
-	stopLoop   chan chan struct{}
+	// Communication chanels
+	updates    chan string          // Receives the new HTML fragments from the renderer
+	register   chan *websocket.Conn // New WebSocket connextions from Browsers
+	unregister chan *websocket.Conn // Disconnected WebSocket
+	stopLoop   chan struct{}        // Graceful shutdown signal
 
-	upgrader websocket.Upgrader
+	upgrader websocket.Upgrader // Upgrades HTTP to WebSocket
 }
 
 func NewManager(addr string, shell string) *Manager {
@@ -35,7 +38,7 @@ func NewManager(addr string, shell string) *Manager {
 		updates:    make(chan string, 8),
 		register:   make(chan *websocket.Conn),
 		unregister: make(chan *websocket.Conn),
-		stopLoop:   make(chan chan struct{}),
+		stopLoop:   make(chan struct{}),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool { return true },
 		},
@@ -77,9 +80,7 @@ func (m *Manager) Stop() error {
 
 	err := m.server.Shutdown(ctx)
 
-	done := make(chan struct{})
-	m.stopLoop <- done
-	<-done
+	close(m.stopLoop)
 
 	m.started = false
 	m.server = nil
@@ -109,6 +110,8 @@ func (m *Manager) handleWS(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Main event loop that runs in its own goroutine
+// Waits for events and handles them
 func (m *Manager) runLoop() {
 	var conn *websocket.Conn
 	lastFragment := ""
@@ -147,12 +150,12 @@ func (m *Manager) runLoop() {
 				conn = nil
 			}
 
-		case done := <-m.stopLoop:
+		case <-m.stopLoop:
 			if conn != nil {
 				_ = conn.Close()
 				conn = nil
 			}
-			close(done)
+			// close(done)
 			return
 		}
 	}

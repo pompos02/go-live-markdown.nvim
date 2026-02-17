@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark-highlighting"
+	highlighting "github.com/yuin/goldmark-highlighting"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
@@ -14,6 +14,7 @@ import (
 	"go.abhg.dev/goldmark/mermaid"
 )
 
+// Renderer is a wrapper around the Goldmark mardown parser with pre-configured extensions
 type Renderer struct {
 	md goldmark.Markdown
 }
@@ -24,10 +25,7 @@ var pageTemplate string
 func NewRenderer() *Renderer {
 	md := goldmark.New(
 		goldmark.WithExtensions(
-			alertcallouts.NewAlertCallouts(
-				alertcallouts.UseGFMStrictIcons(),
-				alertcallouts.WithFolding(true),
-			),
+			alertcallouts.AlertCallouts,
 			&mermaid.Extender{},
 			extension.GFM,
 			extension.Table,
