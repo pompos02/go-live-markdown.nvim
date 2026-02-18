@@ -8,7 +8,6 @@ require (
 	github.com/yuin/goldmark v1.7.16
 	github.com/yuin/goldmark-highlighting v0.0.0-20220208100518-594be1970594
 	github.com/zmtcreative/gm-alert-callouts v0.8.0
-	go.abhg.dev/goldmark/mermaid v0.6.0
 )
 
 require (

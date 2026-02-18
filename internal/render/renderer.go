@@ -11,7 +11,6 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
 	alertcallouts "github.com/zmtcreative/gm-alert-callouts"
-	"go.abhg.dev/goldmark/mermaid"
 )
 
 // Renderer is a wrapper around the Goldmark mardown parser with pre-configured extensions
@@ -26,7 +25,6 @@ func NewRenderer() *Renderer {
 	md := goldmark.New(
 		goldmark.WithExtensions(
 			alertcallouts.AlertCallouts,
-			&mermaid.Extender{},
 			extension.GFM,
 			extension.Table,
 			extension.Strikethrough,
