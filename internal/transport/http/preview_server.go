@@ -1,3 +1,4 @@
+// Package httptransport handles all the message traffic
 package httptransport
 
 import (
@@ -14,7 +15,7 @@ type renderMessage struct {
 	HTML string `json:"html"`
 }
 
-// Central coordinator for HTTP server and WebSocket connections
+// Manager is the central coordinator for HTTP server and WebSocket connections
 type Manager struct {
 	addr  string // Server adrress
 	shell string // HTML template (with the {{CONTENT}} palceholder)
