@@ -12,7 +12,6 @@ import (
 	"github.com/yuin/goldmark/extension"
 	extensionast "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
@@ -45,12 +44,7 @@ func NewRenderer() *Renderer {
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
-		goldmark.WithRendererOptions(
-			html.WithUnsafe(),
-			renderer.WithNodeRenderers(
-				util.Prioritized(newCodeBlockRenderer(), 300),
-			),
-		),
+		goldmark.WithRendererOptions(html.WithUnsafe()),
 	)
 	return &Renderer{md: md}
 }
@@ -100,7 +94,6 @@ func shouldAnnotateNode(n ast.Node) bool {
 	case ast.KindHeading,
 		ast.KindParagraph,
 		ast.KindBlockquote,
-		ast.KindCodeBlock,
 		ast.KindFencedCodeBlock,
 		ast.KindList,
 		ast.KindListItem,
@@ -140,43 +133,6 @@ func offsetToLine(source []byte, offset int) int {
 	}
 
 	return bytes.Count(source[:offset], []byte{'\n'}) + 1
-}
-
-type codeBlockRenderer struct{}
-
-func newCodeBlockRenderer() renderer.NodeRenderer {
-	return &codeBlockRenderer{}
-}
-
-func (r *codeBlockRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
-}
-
-func (r *codeBlockRenderer) renderCodeBlock(
-	w util.BufWriter,
-	source []byte,
-	n ast.Node,
-	entering bool,
-) (ast.WalkStatus, error) {
-	if entering {
-		_, _ = w.WriteString("<pre")
-		if n.Attributes() != nil {
-			html.RenderAttributes(w, n, html.GlobalAttributeFilter)
-		}
-		_, _ = w.WriteString("><code>")
-
-		lines := n.Lines()
-		if lines != nil {
-			for i := 0; i < lines.Len(); i++ {
-				line := lines.At(i)
-				html.DefaultWriter.RawWrite(w, line.Value(source))
-			}
-		}
-	} else {
-		_, _ = w.WriteString("</code></pre>\n")
-	}
-
-	return ast.WalkContinue, nil
 }
 
 func renderHighlightedCodeWrapper(w util.BufWriter, context highlighting.CodeBlockContext, entering bool) {
