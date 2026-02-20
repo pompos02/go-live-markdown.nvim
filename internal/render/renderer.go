@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting"
 	"github.com/yuin/goldmark/ast"
@@ -39,6 +40,9 @@ func NewRenderer() *Renderer {
 			extension.Linkify,
 			highlighting.NewHighlighting(
 				highlighting.WithWrapperRenderer(renderHighlightedCodeWrapper),
+				highlighting.WithFormatOptions(
+					chromahtml.WithClasses(true),
+				),
 			),
 		),
 		goldmark.WithParserOptions(
