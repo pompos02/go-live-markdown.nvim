@@ -1,4 +1,4 @@
-// Package httptransport handles all the message traffic
+// Package httptransport handles all message traffic between Neovim and the browser.
 package httptransport
 
 import (
@@ -6,37 +6,38 @@ import (
 	"net/http"
 	"time"
 
+	"go-live-markdown/internal/contracts"
+
 	"github.com/gorilla/websocket"
 )
 
-// JSON message sent to browser via the WebSocket
-type renderMessage struct {
-	Type string `json:"type"`
-	HTML string `json:"html"`
+type renderPayload struct {
+	html string
 }
 
-// Manager is the central coordinator for HTTP server and WebSocket connections
+// Manager coordinates HTTP serving and WebSocket updates.
 type Manager struct {
-	addr  string // Server adrress
-	shell string // HTML template (with the {{CONTENT}} palceholder)
+	addr  string
+	shell string
 
-	started bool // is server running?
+	started bool
 	server  *http.Server
 
-	// Communication chanels
-	updates    chan string          // Receives the new HTML fragments from the renderer
-	register   chan *websocket.Conn // New WebSocket connextions from Browsers
-	unregister chan *websocket.Conn // Disconnected WebSocket
-	stopLoop   chan struct{}        // Graceful shutdown signal
+	updates    chan renderPayload
+	cursors    chan contracts.CursorMessage
+	register   chan *websocket.Conn
+	unregister chan *websocket.Conn
+	stopLoop   chan struct{}
 
-	upgrader websocket.Upgrader // Upgrades HTTP to WebSocket
+	upgrader websocket.Upgrader
 }
 
 func NewManager(addr string, shell string) *Manager {
 	return &Manager{
 		addr:       addr,
 		shell:      shell,
-		updates:    make(chan string, 8),
+		updates:    make(chan renderPayload, 8),
+		cursors:    make(chan contracts.CursorMessage, 32),
 		register:   make(chan *websocket.Conn),
 		unregister: make(chan *websocket.Conn),
 		stopLoop:   make(chan struct{}),
@@ -56,18 +57,26 @@ func (m *Manager) StartOrUpdate(fragment string) error {
 		mux.HandleFunc("/", m.handleIndex)
 		mux.HandleFunc("/ws", m.handleWS)
 
-		m.server = &http.Server{
-			Addr:    m.addr,
-			Handler: mux,
-		}
-
+		m.server = &http.Server{Addr: m.addr, Handler: mux}
 		m.started = true
+
 		go m.runLoop()
 		go func() {
 			_ = m.server.ListenAndServe()
 		}()
 	}
-	m.updates <- fragment
+
+	m.updates <- renderPayload{html: fragment}
+	return nil
+}
+
+func (m *Manager) UpdateCursor(msg contracts.CursorMessage) error {
+	if !m.started {
+		return nil
+	}
+
+	msg.Type = contracts.MessageTypeCursor
+	m.cursors <- msg
 	return nil
 }
 
@@ -111,24 +120,46 @@ func (m *Manager) handleWS(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Main event loop that runs in its own goroutine
-// Waits for events and handles them
 func (m *Manager) runLoop() {
 	var conn *websocket.Conn
-	lastFragment := ""
+
+	lastRender := contracts.RenderMessage{Type: contracts.MessageTypeRender}
+	lastCursor := contracts.CursorMessage{Type: contracts.MessageTypeCursor}
+	haveCursor := false
 
 	for {
 		select {
-		case fragment := <-m.updates:
-			lastFragment = fragment
-			if conn != nil {
-				if err := conn.WriteJSON(renderMessage{
-					Type: "render",
-					HTML: fragment,
-				}); err != nil {
-					_ = conn.Close()
+		case update := <-m.updates:
+			lastRender.Rev++
+			lastRender.HTML = update.html
+
+			if conn == nil {
+				continue
+			}
+
+			if !writeJSON(conn, lastRender) {
+				conn = nil
+				continue
+			}
+
+			if haveCursor {
+				lastCursor.Rev = lastRender.Rev
+				if !writeJSON(conn, lastCursor) {
 					conn = nil
 				}
+			}
+
+		case cursor := <-m.cursors:
+			lastCursor = cursor
+			haveCursor = true
+
+			if conn == nil || lastRender.Rev == 0 {
+				continue
+			}
+
+			lastCursor.Rev = lastRender.Rev
+			if !writeJSON(conn, lastCursor) {
+				conn = nil
 			}
 
 		case c := <-m.register:
@@ -137,12 +168,16 @@ func (m *Manager) runLoop() {
 			}
 			conn = c
 
-			if err := conn.WriteJSON(renderMessage{
-				Type: "render",
-				HTML: lastFragment,
-			}); err != nil {
-				_ = conn.Close()
+			if !writeJSON(conn, lastRender) {
 				conn = nil
+				continue
+			}
+
+			if haveCursor && lastRender.Rev > 0 {
+				lastCursor.Rev = lastRender.Rev
+				if !writeJSON(conn, lastCursor) {
+					conn = nil
+				}
 			}
 
 		case c := <-m.unregister:
@@ -156,8 +191,15 @@ func (m *Manager) runLoop() {
 				_ = conn.Close()
 				conn = nil
 			}
-			// close(done)
 			return
 		}
 	}
+}
+
+func writeJSON(conn *websocket.Conn, v any) bool {
+	if err := conn.WriteJSON(v); err != nil {
+		_ = conn.Close()
+		return false
+	}
+	return true
 }

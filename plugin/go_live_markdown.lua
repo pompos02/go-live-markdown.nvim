@@ -40,6 +40,7 @@ vim.cmd([[call remote#host#Register('go_live_markdown', '*', function('GoLiveMar
 vim.cmd([[call remote#host#RegisterPlugin('go_live_markdown', '0', [
 \ {'type': 'command', 'name': 'GoLiveMarkdownStart', 'sync': 1, 'opts': {}},
 \ {'type': 'function', 'name': 'GoLiveMarkdownInternalUpdate', 'sync': 1, 'opts': {}},
+\ {'type': 'function', 'name': 'GoLiveMarkdownInternalCursor', 'sync': 1, 'opts': {}},
 \ ])]])
 
 local group = vim.api.nvim_create_augroup("go_live_markdown_updates", { clear = true })
@@ -53,5 +54,13 @@ vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
   pattern = "*.md",
   callback = function()
     pcall(vim.api.nvim_call_function, "GoLiveMarkdownInternalUpdate", {})
+  end,
+})
+
+vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+  group = group,
+  pattern = "*.md",
+  callback = function()
+    pcall(vim.api.nvim_call_function, "GoLiveMarkdownInternalCursor", {})
   end,
 })

@@ -1,11 +1,12 @@
 package app
 
 import (
+	"go-live-markdown/internal/contracts"
 	"go-live-markdown/internal/render"
 	httptransport "go-live-markdown/internal/transport/http"
 )
 
-// Coordinator between markdown rendering and HTTP delivery
+// LivePreview is a coordinator between markdown rendering and HTTP delivery.
 type LivePreview struct {
 	renderer *render.Renderer
 	preview  *httptransport.Manager
@@ -30,4 +31,12 @@ func (s *LivePreview) PublishSource(source []byte) error {
 	}
 
 	return s.preview.StartOrUpdate(fragment)
+}
+
+func (s *LivePreview) PublishCursor(line int, col int) error {
+	return s.preview.UpdateCursor(contracts.CursorMessage{
+		Type: contracts.MessageTypeCursor,
+		Line: line,
+		Col:  col,
+	})
 }

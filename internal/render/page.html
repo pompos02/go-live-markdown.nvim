@@ -22,6 +22,76 @@
 
       var socket = null;
       var retryTimer = null;
+      var latestRev = 0;
+      var lineMap = [];
+
+      function toInt(value, fallback) {
+        var n = Number(value);
+        return Number.isFinite(n) ? n : fallback;
+      }
+
+      function buildLineMap() {
+        var candidates = root.querySelectorAll("[data-md-line]");
+        var out = [];
+
+        for (var i = 0; i < candidates.length; i++) {
+          var el = candidates[i];
+          var line = toInt(el.getAttribute("data-md-line"), NaN);
+          if (!Number.isFinite(line)) continue;
+
+          out.push({
+            line: line,
+            el: el,
+            order: i,
+          });
+        }
+
+        out.sort(function (a, b) {
+          if (a.line === b.line) return a.order - b.order;
+          return a.line - b.line;
+        });
+
+        lineMap = out;
+      }
+
+      function pickTarget(line) {
+        if (lineMap.length === 0) return null;
+
+        if (line <= lineMap[0].line) return lineMap[0];
+        var last = lineMap[lineMap.length - 1];
+        if (line >= last.line) return last;
+
+        var left = 0;
+        var right = lineMap.length - 1;
+        var candidate = lineMap[0];
+
+        while (left <= right) {
+          var mid = (left + right) >> 1;
+          var cur = lineMap[mid];
+
+          if (cur.line <= line) {
+            candidate = cur;
+            left = mid + 1;
+            continue;
+          }
+
+          right = mid - 1;
+        }
+
+        return candidate;
+      }
+
+      function scrollToLine(line) {
+        var target = pickTarget(line);
+        if (!target || !target.el) return;
+
+        var rect = target.el.getBoundingClientRect();
+        var anchor = window.innerHeight * 0.30;
+        var top = window.scrollY + rect.top - anchor;
+        if (top < 0) top = 0;
+
+        window.scrollTo({ top: top, behavior: "smooth" });
+      }
 
       function connect() {
         var proto = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -36,8 +106,19 @@
             return;
           }
 
-          if (msg.type === "render" && typeof msg.html === "string") {
-            root.innerHTML = msg.html;
+          if (msg.type === "render") {
+            root.innerHTML = typeof msg.html === "string" ? msg.html : "";
+            latestRev = toInt(msg.rev, latestRev);
+            buildLineMap();
+            return;
+          }
+
+          if (msg.type === "cursor") {
+            var rev = toInt(msg.rev, 0);
+            if (rev !== latestRev) return;
+
+            var line = toInt(msg.line, 1);
+            scrollToLine(line);
           }
         };
 
