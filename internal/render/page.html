@@ -67,7 +67,13 @@
 
     .md-root [data-md-line] {
       border-radius: 0 !important;
-      transition: background-color 90ms linear, box-shadow 90ms linear;
+      transition: box-shadow 90ms linear;
+    }
+
+    .md-root .is-cursor-line {
+      padding-left: 10px;
+      margin-left: -10px;
+      box-shadow: inset 3px 0 0 var(--accent);
     }
 
     .md-root > :first-child {
@@ -601,6 +607,8 @@
       var retryTimer = null;
       var latestRev = 0;
       var lineMap = [];
+      var activeLineEl = null;
+      var lastCursorLine = null;
 
       function toInt(value, fallback) {
         var n = Number(value);
@@ -658,8 +666,32 @@
         return candidate;
       }
 
-      function scrollToLine(line) {
+      function setActiveLine(nextEl) {
+        if (activeLineEl === nextEl) return;
+
+        if (activeLineEl) {
+          activeLineEl.classList.remove("is-cursor-line");
+        }
+
+        activeLineEl = nextEl || null;
+        if (activeLineEl) {
+          activeLineEl.classList.add("is-cursor-line");
+        }
+      }
+
+      function highlightLine(line) {
         var target = pickTarget(line);
+        if (!target || !target.el) {
+          setActiveLine(null);
+          return null;
+        }
+
+        setActiveLine(target.el);
+        return target;
+      }
+
+      function scrollToLine(line, behavior) {
+        var target = highlightLine(line);
         if (!target || !target.el) return;
 
         var rect = target.el.getBoundingClientRect();
@@ -667,7 +699,7 @@
         var top = window.scrollY + rect.top - anchor;
         if (top < 0) top = 0;
 
-        window.scrollTo({ top: top, behavior: "smooth" });
+        window.scrollTo({ top: top, behavior: behavior || "auto" });
       }
 
       function connect() {
@@ -684,9 +716,14 @@
           }
 
           if (msg.type === "render") {
+            setActiveLine(null);
             root.innerHTML = typeof msg.html === "string" ? msg.html : "";
             latestRev = toInt(msg.rev, latestRev);
             buildLineMap();
+
+            if (lastCursorLine !== null) {
+              highlightLine(lastCursorLine);
+            }
             return;
           }
 
@@ -695,7 +732,13 @@
             if (rev !== latestRev) return;
 
             var line = toInt(msg.line, 1);
-            scrollToLine(line);
+            var behavior = "smooth";
+            if (lastCursorLine !== null && Math.abs(line - lastCursorLine) <= 2) {
+              behavior = "auto";
+            }
+
+            lastCursorLine = line;
+            scrollToLine(line, behavior);
           }
         };
 

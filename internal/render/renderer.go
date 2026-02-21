@@ -53,6 +53,8 @@ func NewRenderer() *Renderer {
 	return &Renderer{md: md}
 }
 
+// ConvertFragment parses markdown source and returns the HTML fragment
+// with data-md-line attributes attached to block elements.
 func (r *Renderer) ConvertFragment(source []byte) (string, error) {
 	doc := r.md.Parser().Parse(text.NewReader(source))
 	annotateBlockSourceLines(doc, source)
@@ -65,6 +67,8 @@ func (r *Renderer) ConvertFragment(source []byte) (string, error) {
 	return buf.String(), nil
 }
 
+// RenderPage returns a complete HTML page with the markdown rendered inside.
+// The fragment is inserted into the page template at the {{CONTENT}} placeholder.
 func (r *Renderer) RenderPage(source []byte) (string, error) {
 	fragment, err := r.ConvertFragment(source)
 	if err != nil {
@@ -73,10 +77,15 @@ func (r *Renderer) RenderPage(source []byte) (string, error) {
 	return strings.Replace(pageTemplate, "{{CONTENT}}", fragment, 1), nil
 }
 
+// RenderShell returns an empty HTML page shell for the initial WebSocket connection.
+// Content will be injected dynamically via WebSocket messages.
 func (r *Renderer) RenderShell() string {
 	return strings.Replace(pageTemplate, "{{CONTENT}}", "", 1)
 }
 
+// annotateBlockSourceLines walks the AST and attaches data-md-line attributes
+// to block-level elements. This enables the browser to track which source
+// line each HTML element corresponds to for cursor synchronization.
 func annotateBlockSourceLines(doc ast.Node, source []byte) {
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering || !shouldAnnotateNode(n) {
@@ -93,6 +102,8 @@ func annotateBlockSourceLines(doc ast.Node, source []byte) {
 	})
 }
 
+// shouldAnnotateNode returns true for block-level element types that should
+// receive line metadata. These are the elements that map directly to source lines.
 func shouldAnnotateNode(n ast.Node) bool {
 	switch n.Kind() {
 	case ast.KindHeading,
@@ -109,6 +120,10 @@ func shouldAnnotateNode(n ast.Node) bool {
 	}
 }
 
+// firstNodeOffset returns the byte offset of the first line in a node.
+// It first checks if the node has its own lines (most block elements do).
+// If not, it recursively searches children to find the first meaningful offset.
+// This handles nodes like lists that contain list items with actual content.
 func firstNodeOffset(n ast.Node) (int, bool) {
 	if n == nil {
 		return 0, false
@@ -127,6 +142,9 @@ func firstNodeOffset(n ast.Node) (int, bool) {
 	return 0, false
 }
 
+// offsetToLine converts a byte offset to a 1-based line number.
+// It counts how many newline characters appear before the offset position
+// The offset is clamped to the valid range [0, len(source)].
 func offsetToLine(source []byte, offset int) int {
 	if offset < 0 {
 		offset = 0
@@ -139,6 +157,9 @@ func offsetToLine(source []byte, offset int) int {
 	return bytes.Count(source[:offset], []byte{'\n'}) + 1
 }
 
+// renderHighlightedCodeWrapper wraps syntax-highlighted code blocks in a div
+// with the data-md-line attribute. This is a custom wrapper renderer used by
+// the goldmark-highlighting extension to preserve line metadata for code blocks.
 func renderHighlightedCodeWrapper(w util.BufWriter, context highlighting.CodeBlockContext, entering bool) {
 	line, ok := highlightedCodeLine(context)
 	if !ok {
@@ -157,6 +178,9 @@ func renderHighlightedCodeWrapper(w util.BufWriter, context highlighting.CodeBlo
 	_, _ = w.WriteString("</div>")
 }
 
+// highlightedCodeLine extracts the line number attribute from a code block's
+// rendering context. This attribute was set during the annotateBlockSourceLines
+// walk and needs to be transferred to the wrapper div.
 func highlightedCodeLine(context highlighting.CodeBlockContext) (string, bool) {
 	if context == nil {
 		return "", false
