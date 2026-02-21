@@ -663,6 +663,8 @@
       var followRaf = 0;
       var followLastTs = 0;
       var manualScrollCooldownUntil = 0;
+      var currentFilename = "[No Name]";
+      var isConnected = false;
 
       var MANUAL_SCROLL_COOLDOWN_MS = 220;
       var FOLLOW_SNAP_DISTANCE_PX = 0.6;
@@ -670,10 +672,17 @@
       var COMFORT_BOTTOM = 0.30;
       var FOLLOW_RATIO = Math.max(0.05, Math.min(0.95, (COMFORT_TOP + COMFORT_BOTTOM) / 2));
 
+      function updateTitle() {
+        document.title = (isConnected ? "" : "! ") + currentFilename;
+      }
+
       function setConnectionState(connected) {
-        if (!connectionIndicatorEl) return;
-        connectionIndicatorEl.classList.toggle("is-connected", !!connected);
-        connectionIndicatorEl.setAttribute("aria-label", connected ? "connected" : "disconnected");
+        isConnected = !!connected;
+        if (connectionIndicatorEl) {
+          connectionIndicatorEl.classList.toggle("is-connected", !!connected);
+          connectionIndicatorEl.setAttribute("aria-label", connected ? "connected" : "disconnected");
+        }
+        updateTitle();
       }
 
       function toInt(value, fallback) {
@@ -925,11 +934,14 @@
             followTargetTop = null;
             setActiveLine(null);
             root.innerHTML = typeof msg.html === "string" ? msg.html : "";
-            if (filenameEl) {
-              var filename = typeof msg.filename === "string" ? msg.filename.trim() : "";
-              filenameEl.textContent = filename || "[No Name]";
-              document.title = filename || "[No Name]";
+            currentFilename = typeof msg.filename === "string" ? msg.filename.trim() : "";
+            if (!currentFilename) {
+              currentFilename = "[No Name]";
             }
+            if (filenameEl) {
+              filenameEl.textContent = currentFilename;
+            }
+            updateTitle();
             latestRev = toInt(msg.rev, latestRev);
             buildLineMap();
 
@@ -972,6 +984,7 @@
         }
       });
 
+      updateTitle();
       connect();
     })();
   </script>
