@@ -17,6 +17,7 @@
       --text-muted: #888888;
       --accent: #fd8000;
       --accent-soft: rgba(253, 128, 0, 0.18);
+      --cursor-line-bg: rgba(253, 128, 0, 0.09);
       --table-head: #222222;
       --table-row: #1a1a1a;
       --table-row-alt: #1e1e1e;
@@ -104,13 +105,12 @@
 
     .md-root [data-md-line] {
       border-radius: 0 !important;
-      transition: box-shadow 90ms linear;
+      position: relative;
+      transition: box-shadow 90ms linear, background-color 120ms ease;
     }
 
     .md-root .is-cursor-line {
-      padding-left: 10px;
-      margin-left: -10px;
-      box-shadow: inset 3px 0 0 var(--accent);
+      background: var(--cursor-line-bg);
     }
 
     .md-root > :first-child {

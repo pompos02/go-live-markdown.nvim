@@ -3,13 +3,13 @@ package app
 import (
 	"go-live-markdown/internal/contracts"
 	"go-live-markdown/internal/render"
-	httptransport "go-live-markdown/internal/transport/http"
+	httpserver "go-live-markdown/internal/transport/http"
 )
 
 // LivePreview is a coordinator between markdown rendering and HTTP delivery.
 type LivePreview struct {
 	renderer *render.Renderer
-	preview  *httptransport.Manager
+	preview  *httpserver.PreviewServer
 }
 
 // NewLivePreview wires the markdown renderer with the HTTP preview transport.
@@ -17,7 +17,7 @@ func NewLivePreview(addr string) *LivePreview {
 	renderer := render.NewRenderer()
 	return &LivePreview{
 		renderer: renderer,
-		preview:  httptransport.NewManager(addr, renderer.RenderShell()),
+		preview:  httpserver.NewPreviewServer(addr, renderer.RenderShell()),
 	}
 }
 
