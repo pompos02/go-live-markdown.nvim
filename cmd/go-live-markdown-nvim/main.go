@@ -1,3 +1,4 @@
+// Package main boots the Go host process used by the Neovim plugin bridge.
 package main
 
 import (

@@ -1,3 +1,4 @@
+// Package app coordinates markdown rendering and preview transport workflows.
 package app
 
 import (

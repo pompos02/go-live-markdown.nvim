@@ -1,3 +1,4 @@
+// Package host exposes Neovim command handlers backed by preview services.
 package host
 
 import (

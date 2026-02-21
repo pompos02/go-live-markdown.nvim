@@ -1,3 +1,4 @@
+// Package render converts markdown into preview HTML with source-line metadata.
 package render
 
 import (

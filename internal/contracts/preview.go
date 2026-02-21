@@ -1,3 +1,4 @@
+// Package contracts defines shared message types for host-browser communication.
 package contracts
 
 const (
