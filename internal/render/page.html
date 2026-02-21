@@ -787,6 +787,22 @@
         window.MathJax.typesetPromise([rootEl]).catch(function () {});
       }
 
+      function syncCodeBlockLanguages(rootEl) {
+        if (!rootEl) return;
+
+        var wrappers = rootEl.querySelectorAll("[data-lang]");
+        for (var i = 0; i < wrappers.length; i++) {
+          var wrapper = wrappers[i];
+          var lang = wrapper.getAttribute("data-lang");
+          if (!lang) continue;
+
+          var pre = wrapper.querySelector("pre");
+          if (!pre) continue;
+
+          pre.setAttribute("data-lang", lang);
+        }
+      }
+
       // Build a sorted index of rendered elements by source markdown line.
       function buildLineMap() {
         var candidates = root.querySelectorAll("[data-md-line]");
@@ -1055,6 +1071,7 @@
             updateTitle();
             latestRev = toInt(msg.rev, latestRev);
             buildLineMap();
+            syncCodeBlockLanguages(root);
             typesetMath(root);
 
             if (lastCursorLine !== null) {

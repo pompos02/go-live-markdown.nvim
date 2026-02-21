@@ -5,6 +5,7 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/base64"
+	stdhtml "html"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -253,7 +254,18 @@ func renderHighlightedCodeWrapper(w util.BufWriter, context highlighting.CodeBlo
 		_, _ = w.WriteString(mdLineAttribute)
 		_, _ = w.WriteString(`="`)
 		_, _ = w.WriteString(line)
-		_, _ = w.WriteString(`">`)
+		_, _ = w.WriteString(`"`)
+
+		if language, ok := context.Language(); ok {
+			lang := strings.TrimSpace(string(language))
+			if lang != "" {
+				_, _ = w.WriteString(` data-lang="`)
+				_, _ = w.WriteString(stdhtml.EscapeString(lang))
+				_, _ = w.WriteString(`"`)
+			}
+		}
+
+		_, _ = w.WriteString(`>`)
 		return
 	}
 
