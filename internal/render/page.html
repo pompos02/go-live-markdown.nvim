@@ -609,6 +609,16 @@
       var lineMap = [];
       var activeLineEl = null;
       var lastCursorLine = null;
+      var followTargetTop = null;
+      var followRaf = 0;
+      var followLastTs = 0;
+      var manualScrollCooldownUntil = 0;
+
+      var MANUAL_SCROLL_COOLDOWN_MS = 220;
+      var FOLLOW_SNAP_DISTANCE_PX = 0.6;
+      var COMFORT_TOP = 0.30;
+      var COMFORT_BOTTOM = 0.30;
+      var FOLLOW_RATIO = Math.max(0.05, Math.min(0.95, (COMFORT_TOP + COMFORT_BOTTOM) / 2));
 
       function toInt(value, fallback) {
         var n = Number(value);
@@ -637,6 +647,133 @@
         });
 
         lineMap = out;
+      }
+
+      function maxScrollTop() {
+        var doc = document.documentElement;
+        return Math.max(0, doc.scrollHeight - window.innerHeight);
+      }
+
+      function getScrollTop() {
+        return window.scrollY || document.documentElement.scrollTop || 0;
+      }
+
+      function clampScrollTop(top) {
+        var clamped = Number(top);
+        if (!Number.isFinite(clamped)) return window.scrollY || 0;
+        if (clamped < 0) return 0;
+        var maxTop = maxScrollTop();
+        if (clamped > maxTop) return maxTop;
+        return clamped;
+      }
+
+      function stopFollowAnimation() {
+        if (followRaf) {
+          cancelAnimationFrame(followRaf);
+          followRaf = 0;
+        }
+        followLastTs = 0;
+      }
+
+      function markManualScrollIntent() {
+        manualScrollCooldownUntil = performance.now() + MANUAL_SCROLL_COOLDOWN_MS;
+        followTargetTop = getScrollTop();
+        stopFollowAnimation();
+      }
+
+      function isScrollKey(event) {
+        var key = event && event.key;
+        return (
+          key === "ArrowUp" ||
+          key === "ArrowDown" ||
+          key === "PageUp" ||
+          key === "PageDown" ||
+          key === "Home" ||
+          key === "End" ||
+          key === " " ||
+          key === "Spacebar"
+        );
+      }
+
+      function stepFollow(ts) {
+        if (followTargetTop === null) {
+          stopFollowAnimation();
+          return;
+        }
+
+        if (followLastTs === 0) {
+          followLastTs = ts;
+        }
+
+        var dt = Math.max(1 / 120, Math.min(1 / 20, (ts - followLastTs) / 1000));
+        followLastTs = ts;
+
+        var targetTop = clampScrollTop(followTargetTop);
+        var currentTop = getScrollTop();
+        var distance = targetTop - currentTop;
+
+        if (Math.abs(distance) < FOLLOW_SNAP_DISTANCE_PX) {
+          window.scrollTo({ top: targetTop, behavior: "auto" });
+          stopFollowAnimation();
+          return;
+        }
+
+        var distanceAbs = Math.abs(distance);
+        var t = Math.min(1, distanceAbs / 1200);
+        var responsiveness = 8 + 10 * t;
+        var maxSpeed = 22200 + 7800 * t * t;
+
+        var alpha = 1 - Math.exp(-responsiveness * dt);
+        var unclampedStep = distance * alpha;
+        var maxStep = maxSpeed * dt;
+        var step = Math.max(-maxStep, Math.min(maxStep, unclampedStep));
+        var nextTop = clampScrollTop(currentTop + step);
+
+        window.scrollTo({ top: nextTop, behavior: "auto" });
+        followRaf = requestAnimationFrame(stepFollow);
+      }
+
+      function animateToScrollTop(top, force) {
+        var clampedTop = clampScrollTop(top);
+
+        if (force) {
+          followTargetTop = clampedTop;
+          stopFollowAnimation();
+          window.scrollTo({ top: clampedTop, behavior: "auto" });
+          return;
+        }
+
+        followTargetTop = clampedTop;
+        if (followRaf === 0) {
+          followRaf = requestAnimationFrame(stepFollow);
+        }
+      }
+
+      function targetTopForElement(target) {
+        var viewport = window.innerHeight || document.documentElement.clientHeight;
+        var absoluteTop = getScrollTop() + target.getBoundingClientRect().top;
+        return absoluteTop - viewport * FOLLOW_RATIO;
+      }
+
+      function targetTopByLineRatio(line) {
+        if (lineMap.length === 0) {
+          return getScrollTop();
+        }
+
+        var maxLine = Math.max(lineMap[lineMap.length - 1].line, 1);
+        var ratio = Math.max(0, Math.min(1, line / maxLine));
+        return maxScrollTop() * ratio;
+      }
+
+      function outsideComfortZone(targetEl) {
+        if (!targetEl) return true;
+
+        var viewport = window.innerHeight || document.documentElement.clientHeight;
+        var comfortTopPx = viewport * COMFORT_TOP;
+        var comfortBottomPx = viewport * (1 - COMFORT_BOTTOM);
+        var rect = targetEl.getBoundingClientRect();
+
+        return rect.top < comfortTopPx || rect.bottom > comfortBottomPx;
       }
 
       function pickTarget(line) {
@@ -690,16 +827,24 @@
         return target;
       }
 
-      function scrollToLine(line, behavior) {
+      function scrollToLine(line, force) {
         var target = highlightLine(line);
-        if (!target || !target.el) return;
+        if (!force && performance.now() < manualScrollCooldownUntil) {
+          return;
+        }
 
-        var rect = target.el.getBoundingClientRect();
-        var anchor = window.innerHeight * 0.30;
-        var top = window.scrollY + rect.top - anchor;
-        if (top < 0) top = 0;
+        if (!force && target && target.el && !outsideComfortZone(target.el)) {
+          return;
+        }
 
-        window.scrollTo({ top: top, behavior: behavior || "auto" });
+        var top;
+        if (!target || !target.el) {
+          top = targetTopByLineRatio(line);
+        } else {
+          top = targetTopForElement(target.el);
+        }
+
+        animateToScrollTop(top, !!force);
       }
 
       function connect() {
@@ -716,6 +861,8 @@
           }
 
           if (msg.type === "render") {
+            stopFollowAnimation();
+            followTargetTop = null;
             setActiveLine(null);
             root.innerHTML = typeof msg.html === "string" ? msg.html : "";
             latestRev = toInt(msg.rev, latestRev);
@@ -732,13 +879,10 @@
             if (rev !== latestRev) return;
 
             var line = toInt(msg.line, 1);
-            var behavior = "smooth";
-            if (lastCursorLine !== null && Math.abs(line - lastCursorLine) <= 2) {
-              behavior = "auto";
-            }
+            if (lastCursorLine !== null && lastCursorLine === line) return;
 
             lastCursorLine = line;
-            scrollToLine(line, behavior);
+            scrollToLine(line, false);
           }
         };
 
@@ -751,6 +895,15 @@
           retryTimer = setTimeout(connect, 500);
         };
       }
+
+      window.addEventListener("wheel", markManualScrollIntent, { passive: true });
+      window.addEventListener("touchstart", markManualScrollIntent, { passive: true });
+      window.addEventListener("touchmove", markManualScrollIntent, { passive: true });
+      window.addEventListener("keydown", function (event) {
+        if (isScrollKey(event)) {
+          markManualScrollIntent();
+        }
+      });
 
       connect();
     })();
