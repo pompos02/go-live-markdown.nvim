@@ -4,6 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Go Live Markdown</title>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["$", "$"], ["\\(", "\\)"]],
+        displayMath: [["$$", "$$"], ["\\[", "\\]"]]
+      },
+      options: {
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+      }
+    };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
   <style>
     /* Theme variables and design tokens. */
     :root {
@@ -106,7 +118,7 @@
     .md-root [data-md-line] {
       border-radius: 0 !important;
       position: relative;
-      transition: box-shadow 90ms linear, background-color 120ms ease;
+      transition: box-shadow 90ms linear;
     }
 
     .md-root .is-cursor-line {
@@ -752,6 +764,19 @@
         return Number.isFinite(n) ? n : fallback;
       }
 
+      function typesetMath(rootEl) {
+        if (!rootEl) return;
+        if (!window.MathJax || typeof window.MathJax.typesetPromise !== "function") {
+          return;
+        }
+
+        if (typeof window.MathJax.typesetClear === "function") {
+          window.MathJax.typesetClear([rootEl]);
+        }
+
+        window.MathJax.typesetPromise([rootEl]).catch(function () {});
+      }
+
       // Build a sorted index of rendered elements by source markdown line.
       function buildLineMap() {
         var candidates = root.querySelectorAll("[data-md-line]");
@@ -1020,6 +1045,7 @@
             updateTitle();
             latestRev = toInt(msg.rev, latestRev);
             buildLineMap();
+            typesetMath(root);
 
             if (lastCursorLine !== null) {
               highlightLine(lastCursorLine);
