@@ -16,6 +16,7 @@ require (
 require (
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade // indirect
+	go.abhg.dev/goldmark/wikilink v0.6.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
 )

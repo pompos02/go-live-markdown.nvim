@@ -159,6 +159,16 @@
       text-decoration: underline;
     }
 
+    .md-root a[href^="wikilink:"],
+    .md-root a[href^="wikilink:"]:visited,
+    .md-root a[href^="wikilink:"]:hover,
+    .md-root a[href^="wikilink:"]:focus-visible {
+      color: #4a8dff;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: default;
+    }
+
     .md-root h1 > a.anchor,
     .md-root h2 > a.anchor,
     .md-root h3 > a.anchor,
@@ -1085,6 +1095,25 @@
         return false;
       }
 
+      function isWikilinkAnchor(el) {
+        if (!el || !(el instanceof Element)) return false;
+        var anchor = el.closest('a[href^="wikilink:"]');
+        return anchor instanceof HTMLAnchorElement;
+      }
+
+      function handleWikilinkClick(event) {
+        if (!event || event.defaultPrevented) return;
+
+        var target = event.target;
+        if (target && target.nodeType === Node.TEXT_NODE) {
+          target = target.parentElement;
+        }
+
+        if (!isWikilinkAnchor(target)) return;
+
+        event.preventDefault();
+      }
+
       function pickLineElementFromEvent(event) {
         if (!event) return null;
 
@@ -1235,6 +1264,8 @@
           markManualScrollIntent();
         }
       });
+      root.addEventListener("click", handleWikilinkClick);
+      root.addEventListener("auxclick", handleWikilinkClick);
       root.addEventListener("click", handleHeadingClick);
       root.addEventListener("dblclick", handlePreviewDoubleClick);
 

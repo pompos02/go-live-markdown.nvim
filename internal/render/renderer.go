@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	chromahtml "github.com/alecthomas/chroma/formatters/html"
+	mathjax "github.com/litao91/goldmark-mathjax"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting"
 	"github.com/yuin/goldmark/ast"
@@ -21,7 +22,7 @@ import (
 	"github.com/yuin/goldmark/util"
 	alertcallouts "github.com/zmtcreative/gm-alert-callouts"
 	"go.abhg.dev/goldmark/anchor"
-	mathjax "github.com/litao91/goldmark-mathjax"
+	"go.abhg.dev/goldmark/wikilink"
 )
 
 const mdLineAttribute = "data-md-line"
@@ -38,6 +39,7 @@ var pageTemplate string
 func NewRenderer() *Renderer {
 	md := goldmark.New(
 		goldmark.WithExtensions(
+			&wikilink.Extender{Resolver: previewWikilinkResolver{}},
 			mathjax.MathJax,
 			alertcallouts.AlertCallouts,
 			extension.GFM,
@@ -61,9 +63,22 @@ func NewRenderer() *Renderer {
 		),
 		goldmark.WithRendererOptions(
 			html.WithHardWraps(),
-			html.WithUnsafe()),
+			html.WithUnsafe(),
+		),
 	)
 	return &Renderer{md: md}
+}
+
+type previewWikilinkResolver struct{}
+
+func (previewWikilinkResolver) ResolveWikilink(n *wikilink.Node) ([]byte, error) {
+	dest, err := wikilink.DefaultResolver.ResolveWikilink(n)
+	if err != nil {
+		return nil, err
+	}
+
+	// Give client context so is can block the wikilink redirection
+	return append([]byte("wikilink:"), dest...), nil
 }
 
 // ConvertFragment parses markdown source and returns the HTML fragment
