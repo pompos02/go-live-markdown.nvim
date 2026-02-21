@@ -69,9 +69,26 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--alert-caution);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+      flex: 0 0 auto;
+    }
+
+    .status-dot.is-connected {
+      background: var(--alert-tip);
     }
 
     .md-root {
@@ -622,7 +639,10 @@
 </head>
 <body>
   <header class="preview-header">
-    <div class="preview-filename" id="preview-filename">[No Name]</div>
+    <div class="preview-filename">
+      <span class="status-dot" id="preview-conn-indicator" aria-label="disconnected"></span>
+      <span id="preview-filename">[No Name]</span>
+    </div>
   </header>
   <article class="md-root">{{CONTENT}}</article>
 
@@ -630,6 +650,7 @@
     (function () {
       var root = document.querySelector(".md-root");
       var filenameEl = document.getElementById("preview-filename");
+      var connectionIndicatorEl = document.getElementById("preview-conn-indicator");
       if (!root) return;
 
       var socket = null;
@@ -648,6 +669,12 @@
       var COMFORT_TOP = 0.30;
       var COMFORT_BOTTOM = 0.30;
       var FOLLOW_RATIO = Math.max(0.05, Math.min(0.95, (COMFORT_TOP + COMFORT_BOTTOM) / 2));
+
+      function setConnectionState(connected) {
+        if (!connectionIndicatorEl) return;
+        connectionIndicatorEl.classList.toggle("is-connected", !!connected);
+        connectionIndicatorEl.setAttribute("aria-label", connected ? "connected" : "disconnected");
+      }
 
       function toInt(value, fallback) {
         var n = Number(value);
@@ -881,6 +908,10 @@
         var url = proto + "//" + window.location.host + "/ws";
         socket = new WebSocket(url);
 
+        socket.onopen = function () {
+          setConnectionState(true);
+        };
+
         socket.onmessage = function (event) {
           var msg;
           try {
@@ -921,10 +952,12 @@
         };
 
         socket.onerror = function () {
+          setConnectionState(false);
           socket.close();
         };
 
         socket.onclose = function () {
+          setConnectionState(false);
           if (retryTimer) clearTimeout(retryTimer);
           retryTimer = setTimeout(connect, 500);
         };
