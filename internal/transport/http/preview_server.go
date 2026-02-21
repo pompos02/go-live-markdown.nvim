@@ -3,7 +3,11 @@ package httptransport
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"go-live-markdown/internal/contracts"
@@ -52,11 +56,12 @@ func (m *Manager) URL() string {
 	return "http://" + m.addr
 }
 
-func (m *Manager) StartOrUpdate(fragment string, filename string) error {
+func (m *Manager) StartOrUpdate(fragment string, path string) error {
 	if !m.started {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", m.handleIndex)
 		mux.HandleFunc("/ws", m.handleWS)
+		mux.HandleFunc("/@mdfs/", m.handleAsset)
 
 		m.server = &http.Server{Addr: m.addr, Handler: mux}
 		m.started = true
@@ -67,6 +72,7 @@ func (m *Manager) StartOrUpdate(fragment string, filename string) error {
 		}()
 	}
 
+	filename := filepath.Base(path)
 	m.updates <- renderPayload{html: fragment, filename: filename}
 	return nil
 }
@@ -119,6 +125,39 @@ func (m *Manager) handleWS(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+}
+
+func (m *Manager) handleAsset(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := strings.TrimPrefix(r.URL.Path, "/@mdfs/")
+	if id == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	decoded, err := base64.RawURLEncoding.DecodeString(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	assetPath := filepath.Clean(string(decoded))
+	if assetPath == "." || !filepath.IsAbs(assetPath) {
+		http.NotFound(w, r)
+		return
+	}
+
+	info, err := os.Stat(assetPath)
+	if err != nil || info.IsDir() {
+		http.NotFound(w, r)
+		return
+	}
+
+	http.ServeFile(w, r, assetPath)
 }
 
 func (m *Manager) runLoop() {

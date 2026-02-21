@@ -3,6 +3,8 @@ package render
 import (
 	"bytes"
 	_ "embed"
+	"encoding/base64"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -56,8 +58,17 @@ func NewRenderer() *Renderer {
 // ConvertFragment parses markdown source and returns the HTML fragment
 // with data-md-line attributes attached to block elements.
 func (r *Renderer) ConvertFragment(source []byte) (string, error) {
+	return r.ConvertFragmentWithSourcePath(source, "")
+}
+
+// ConvertFragmentWithSourcePath parses markdown source and returns the HTML
+// fragment with data-md-line attributes attached to block elements.
+//
+// If sourcePath is set, local image destinations are rewritten to the
+// preview asset path format expected by the HTTP layer.
+func (r *Renderer) ConvertFragmentWithSourcePath(source []byte, sourcePath string) (string, error) {
 	doc := r.md.Parser().Parse(text.NewReader(source))
-	annotateBlockSourceLines(doc, source)
+	decorateAST(doc, source, sourcePath)
 
 	var buf bytes.Buffer
 	if err := r.md.Renderer().Render(&buf, source, doc); err != nil {
@@ -83,21 +94,65 @@ func (r *Renderer) RenderShell() string {
 	return strings.Replace(pageTemplate, "{{CONTENT}}", "", 1)
 }
 
-// annotateBlockSourceLines walks the AST and attaches data-md-line attributes
-// to block-level elements. This enables the browser to track which source
-// line each HTML element corresponds to for cursor synchronization.
-func annotateBlockSourceLines(doc ast.Node, source []byte) {
+// decorateAST walks the AST once and applies render metadata.
+// It attaches data-md-line to block-level elements for cursor sync and,
+// when sourcePath is available, rewrites local image destinations to /@mdfs/.
+func decorateAST(doc ast.Node, source []byte, sourcePath string) {
+	baseDir := ""
+	if sourcePath != "" {
+		baseDir = filepath.Dir(sourcePath)
+	}
+
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if !entering || !shouldAnnotateNode(n) {
+		if !entering {
 			return ast.WalkContinue, nil
 		}
 
-		offset, ok := firstNodeOffset(n)
+		if shouldAnnotateNode(n) {
+			offset, ok := firstNodeOffset(n)
+			if ok {
+				n.SetAttributeString(mdLineAttribute, strconv.Itoa(offsetToLine(source, offset)))
+			}
+		}
+
+		img, ok := n.(*ast.Image)
 		if !ok {
 			return ast.WalkContinue, nil
 		}
 
-		n.SetAttributeString(mdLineAttribute, strconv.Itoa(offsetToLine(source, offset)))
+		rawDest := strings.TrimSpace(string(img.Destination))
+		if rawDest == "" {
+			return ast.WalkContinue, nil
+		}
+
+		lowerDest := strings.ToLower(rawDest)
+		if strings.HasPrefix(lowerDest, "http://") ||
+			strings.HasPrefix(lowerDest, "https://") ||
+			strings.HasPrefix(lowerDest, "data:") ||
+			strings.HasPrefix(lowerDest, "blob:") ||
+			strings.HasPrefix(lowerDest, "file://") ||
+			strings.HasPrefix(lowerDest, "//") ||
+			strings.HasPrefix(lowerDest, "#") ||
+			strings.HasPrefix(lowerDest, "/@mdfs/") {
+			return ast.WalkContinue, nil
+		}
+
+		if filepath.IsAbs(rawDest) {
+			img.Destination = []byte("/@mdfs/" + base64.RawURLEncoding.EncodeToString([]byte(filepath.Clean(rawDest))))
+			img.SetAttributeString("loading", "lazy")
+			img.SetAttributeString("decoding", "async")
+			return ast.WalkContinue, nil
+		}
+
+		if baseDir == "" {
+			return ast.WalkContinue, nil
+		}
+
+		resolved := filepath.Clean(filepath.Join(baseDir, rawDest))
+		img.Destination = []byte("/@mdfs/" + base64.RawURLEncoding.EncodeToString([]byte(resolved)))
+		img.SetAttributeString("loading", "lazy")
+		img.SetAttributeString("decoding", "async")
+
 		return ast.WalkContinue, nil
 	})
 }

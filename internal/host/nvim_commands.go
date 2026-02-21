@@ -3,7 +3,6 @@ package host
 import (
 	"bytes"
 	"fmt"
-	"path/filepath"
 
 	"go-live-markdown/internal/app"
 
@@ -80,14 +79,14 @@ func (c *Commands) GoLiveMarkdownCursor(v *nvim.Nvim) error {
 	return c.publishCursor(v)
 }
 
-func (c *Commands) currentFilename(v *nvim.Nvim) (string, error) {
-	name, err := v.BufferName(0)
+func (c *Commands) currentPath(v *nvim.Nvim) (string, error) {
+	absPath, err := v.BufferName(0)
 	if err != nil {
 		return "", err
 	}
-	filename := filepath.Base(name)
+	// filename := filepath.Base(name)
 
-	return filename, nil
+	return absPath, nil
 }
 
 func (c *Commands) publishBuffer(v *nvim.Nvim) error {
@@ -102,11 +101,11 @@ func (c *Commands) publishBuffer(v *nvim.Nvim) error {
 	}
 
 	source := bytes.Join(lines, []byte("\n"))
-	filename, err := c.currentFilename(v)
+	path, err := c.currentPath(v)
 	if err != nil {
 		return err
 	}
-	return c.preview.PublishSource(source, filename)
+	return c.preview.PublishSource(source, path)
 }
 
 func (c *Commands) publishCursor(v *nvim.Nvim) error {

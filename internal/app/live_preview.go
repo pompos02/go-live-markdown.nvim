@@ -24,13 +24,13 @@ func (s *LivePreview) URL() string {
 	return s.preview.URL()
 }
 
-func (s *LivePreview) PublishSource(source []byte, filename string) error {
-	fragment, err := s.renderer.ConvertFragment(source)
+func (s *LivePreview) PublishSource(source []byte, path string) error {
+	fragment, err := s.renderer.ConvertFragmentWithSourcePath(source, path)
 	if err != nil {
 		return err
 	}
 
-	return s.preview.StartOrUpdate(fragment, filename)
+	return s.preview.StartOrUpdate(fragment, path)
 }
 
 func (s *LivePreview) PublishCursor(line int, col int) error {
