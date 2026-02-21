@@ -55,6 +55,25 @@
       background: var(--bg);
     }
 
+    .preview-header {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 22px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .preview-filename {
+      color: var(--text-muted);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .md-root {
       max-width: 860px;
       min-height: 72vh;
@@ -590,6 +609,10 @@
         padding: 10px;
       }
 
+      .preview-header {
+        padding: 0 14px 8px;
+      }
+
       .md-root {
         padding: 16px 14px;
         min-height: calc(100vh - 80px);
@@ -598,11 +621,15 @@
   </style>
 </head>
 <body>
+  <header class="preview-header">
+    <div class="preview-filename" id="preview-filename">[No Name]</div>
+  </header>
   <article class="md-root">{{CONTENT}}</article>
 
   <script>
     (function () {
       var root = document.querySelector(".md-root");
+      var filenameEl = document.getElementById("preview-filename");
       if (!root) return;
 
       var socket = null;
@@ -867,6 +894,11 @@
             followTargetTop = null;
             setActiveLine(null);
             root.innerHTML = typeof msg.html === "string" ? msg.html : "";
+            if (filenameEl) {
+              var filename = typeof msg.filename === "string" ? msg.filename.trim() : "";
+              filenameEl.textContent = filename || "[No Name]";
+              document.title = filename || "[No Name]";
+            }
             latestRev = toInt(msg.rev, latestRev);
             buildLineMap();
 

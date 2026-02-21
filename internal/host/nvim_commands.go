@@ -80,7 +80,7 @@ func (c *Commands) GoLiveMarkdownCursor(v *nvim.Nvim) error {
 	return c.publishCursor(v)
 }
 
-func (c *Commands) currentActiveFilename(v *nvim.Nvim) (string, error) {
+func (c *Commands) currentFilename(v *nvim.Nvim) (string, error) {
 	name, err := v.BufferName(0)
 	if err != nil {
 		return "", err
@@ -102,7 +102,11 @@ func (c *Commands) publishBuffer(v *nvim.Nvim) error {
 	}
 
 	source := bytes.Join(lines, []byte("\n"))
-	return c.preview.PublishSource(source)
+	filename, err := c.currentFilename(v)
+	if err != nil {
+		return err
+	}
+	return c.preview.PublishSource(source, filename)
 }
 
 func (c *Commands) publishCursor(v *nvim.Nvim) error {

@@ -6,9 +6,10 @@ const (
 )
 
 type RenderMessage struct {
-	Type string `json:"type"`
-	HTML string `json:"html"`
-	Rev  uint64 `json:"rev"`
+	Type     string `json:"type"`
+	HTML     string `json:"html"`
+	Filename string `json:"filename"`
+	Rev      uint64 `json:"rev"`
 }
 
 type CursorMessage struct {

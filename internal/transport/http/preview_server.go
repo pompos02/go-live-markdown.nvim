@@ -12,7 +12,8 @@ import (
 )
 
 type renderPayload struct {
-	html string
+	html     string
+	filename string
 }
 
 // Manager coordinates HTTP serving and WebSocket updates.
@@ -51,7 +52,7 @@ func (m *Manager) URL() string {
 	return "http://" + m.addr
 }
 
-func (m *Manager) StartOrUpdate(fragment string) error {
+func (m *Manager) StartOrUpdate(fragment string, filename string) error {
 	if !m.started {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", m.handleIndex)
@@ -66,7 +67,7 @@ func (m *Manager) StartOrUpdate(fragment string) error {
 		}()
 	}
 
-	m.updates <- renderPayload{html: fragment}
+	m.updates <- renderPayload{html: fragment, filename: filename}
 	return nil
 }
 
@@ -132,6 +133,7 @@ func (m *Manager) runLoop() {
 		case update := <-m.updates:
 			lastRender.Rev++
 			lastRender.HTML = update.html
+			lastRender.Filename = update.filename
 
 			if conn == nil {
 				continue
