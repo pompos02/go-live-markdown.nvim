@@ -39,6 +39,7 @@ var pageTemplate string
 func NewRenderer() *Renderer {
 	md := goldmark.New(
 		goldmark.WithExtensions(
+			extension.Footnote,
 			&wikilink.Extender{Resolver: previewWikilinkResolver{}},
 			mathjax.MathJax,
 			alertcallouts.AlertCallouts,
@@ -62,7 +63,7 @@ func NewRenderer() *Renderer {
 			parser.WithAutoHeadingID(),
 		),
 		goldmark.WithRendererOptions(
-			html.WithHardWraps(),
+			// html.WithHardWraps(),
 			html.WithUnsafe(),
 		),
 	)

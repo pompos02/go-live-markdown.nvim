@@ -11,12 +11,12 @@ require (
 	github.com/yuin/goldmark-highlighting v0.0.0-20220208100518-594be1970594
 	github.com/zmtcreative/gm-alert-callouts v0.8.0
 	go.abhg.dev/goldmark/anchor v0.2.0
+	go.abhg.dev/goldmark/wikilink v0.6.0
 )
 
 require (
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade // indirect
-	go.abhg.dev/goldmark/wikilink v0.6.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
 )
