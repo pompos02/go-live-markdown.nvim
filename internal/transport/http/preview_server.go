@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -74,11 +76,18 @@ func (m *PreviewServer) StartOrUpdate(fragment string, path string) error {
 		mux.HandleFunc("/@mdfs/", m.handleAsset)
 
 		m.server = &http.Server{Addr: m.addr, Handler: mux}
+
+		listener, err := net.Listen("tcp", m.addr)
+		if err != nil {
+			return fmt.Errorf("failed to start preview server on %s: %w", m.addr, err)
+		}
 		m.started = true
 
 		go m.runLoop()
 		go func() {
-			_ = m.server.ListenAndServe()
+			if err := m.server.Serve(listener); err != nil && err != http.ErrServerClosed {
+				_ = listener.Close()
+			}
 		}()
 	}
 

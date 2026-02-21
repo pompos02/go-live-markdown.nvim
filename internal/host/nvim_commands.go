@@ -66,14 +66,19 @@ func (c *Commands) GoLiveMarkdownStart(v *nvim.Nvim) error {
 	c.nv = v
 
 	if err := c.publishBuffer(v); err != nil {
-		return err
+		c.active = false
+		return c.notifyError(v, fmt.Sprintf("[go-live-markdown] %v", err))
 	}
 
 	if err := c.publishCursor(v); err != nil {
-		return err
+		return c.notifyError(v, fmt.Sprintf("[go-live-markdown] %v", err))
 	}
 
 	return v.Command(fmt.Sprintf(`echom "[go-live-markdown] preview: %s"`, c.preview.URL()))
+}
+
+func (c *Commands) notifyError(v *nvim.Nvim, msg string) error {
+	return v.Command(fmt.Sprintf(`echohl ErrorMsg | echom %q | echohl None`, msg))
 }
 
 // GoLiveMarkdownUpdate publishes the current buffer contents when active.
