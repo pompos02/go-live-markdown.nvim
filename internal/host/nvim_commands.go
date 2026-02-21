@@ -24,6 +24,7 @@ type Commands struct {
 	lastCursorCol  int
 }
 
+// NewCommands constructs command handlers and wires browser callbacks.
 func NewCommands() *Commands {
 	preview := app.NewLivePreview("127.0.0.1:7777")
 	c := &Commands{preview: preview}
@@ -57,6 +58,7 @@ func Register(p *plugin.Plugin) error {
 	return nil
 }
 
+// GoLiveMarkdownStart enables live preview for the current buffer.
 func (c *Commands) GoLiveMarkdownStart(v *nvim.Nvim) error {
 	c.active = true
 	c.lastCursorLine = 0
@@ -74,6 +76,7 @@ func (c *Commands) GoLiveMarkdownStart(v *nvim.Nvim) error {
 	return v.Command(fmt.Sprintf(`echom "[go-live-markdown] preview: %s"`, c.preview.URL()))
 }
 
+// GoLiveMarkdownUpdate publishes the current buffer contents when active.
 func (c *Commands) GoLiveMarkdownUpdate(v *nvim.Nvim) error {
 	if !c.active {
 		return nil
@@ -82,6 +85,7 @@ func (c *Commands) GoLiveMarkdownUpdate(v *nvim.Nvim) error {
 	return c.publishBuffer(v)
 }
 
+// GoLiveMarkdownCursor publishes cursor updates when preview is active.
 func (c *Commands) GoLiveMarkdownCursor(v *nvim.Nvim) error {
 	if !c.active {
 		return nil
@@ -89,19 +93,21 @@ func (c *Commands) GoLiveMarkdownCursor(v *nvim.Nvim) error {
 	return c.publishCursor(v)
 }
 
+// currentPath resolves the absolute path for the current buffer.
 func (c *Commands) currentPath(v *nvim.Nvim) (string, error) {
 	absPath, err := v.BufferName(0)
 	if err != nil {
 		return "", err
 	}
-	// filename := filepath.Base(name)
 
 	return absPath, nil
 }
 
+// publishBuffer reads the current buffer and sends rendered content to preview.
 func (c *Commands) publishBuffer(v *nvim.Nvim) error {
 	buf, err := v.CurrentBuffer()
 	if err != nil {
+		// Keep the host alive when the active buffer becomes unavailable.
 		return nil
 	}
 
@@ -118,6 +124,7 @@ func (c *Commands) publishBuffer(v *nvim.Nvim) error {
 	return c.preview.PublishSource(source, path)
 }
 
+// publishCursor sends the current cursor position when it changes.
 func (c *Commands) publishCursor(v *nvim.Nvim) error {
 	var line int
 	if err := v.Eval(`line(".")`, &line); err != nil {
@@ -138,6 +145,7 @@ func (c *Commands) publishCursor(v *nvim.Nvim) error {
 	return c.preview.PublishCursor(line, col)
 }
 
+// handleGoToLine moves the Neovim cursor based on browser interaction.
 func (c *Commands) handleGoToLine(msg contracts.GoToLineMessage) {
 	if !c.active || c.nv == nil {
 		return
@@ -147,7 +155,7 @@ func (c *Commands) handleGoToLine(msg contracts.GoToLineMessage) {
 
 	line := msg.Line
 	if line == c.lastCursorLine {
-		return 
+		return
 	}
 
 	win, err := v.CurrentWindow()
@@ -162,5 +170,4 @@ func (c *Commands) handleGoToLine(msg contracts.GoToLineMessage) {
 	c.lastCursorLine = line
 	c.lastCursorCol = 0
 
-	
 }

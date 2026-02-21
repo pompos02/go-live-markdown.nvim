@@ -29,6 +29,7 @@ type Manager struct {
 	started bool
 	server  *http.Server
 
+	// OnGoToLine is invoked when the browser requests a jump to a source line.
 	OnGoToLine func(contracts.GoToLineMessage)
 	browserMsg chan []byte
 
@@ -41,6 +42,7 @@ type Manager struct {
 	upgrader websocket.Upgrader
 }
 
+// NewManager creates an HTTP/WebSocket preview manager bound to addr.
 func NewManager(addr string, shell string) *Manager {
 	return &Manager{
 		addr:  addr,
@@ -58,10 +60,12 @@ func NewManager(addr string, shell string) *Manager {
 	}
 }
 
+// URL returns the browser URL for the preview server.
 func (m *Manager) URL() string {
 	return "http://" + m.addr
 }
 
+// StartOrUpdate starts the preview server on first call and publishes new HTML.
 func (m *Manager) StartOrUpdate(fragment string, path string) error {
 	if !m.started {
 		mux := http.NewServeMux()
@@ -83,6 +87,7 @@ func (m *Manager) StartOrUpdate(fragment string, path string) error {
 	return nil
 }
 
+// UpdateCursor publishes a cursor update to connected browsers.
 func (m *Manager) UpdateCursor(msg contracts.CursorMessage) error {
 	if !m.started {
 		return nil
@@ -93,6 +98,7 @@ func (m *Manager) UpdateCursor(msg contracts.CursorMessage) error {
 	return nil
 }
 
+// Stop gracefully shuts down the HTTP server and run loop.
 func (m *Manager) Stop() error {
 	if !m.started || m.server == nil {
 		return nil
@@ -110,11 +116,13 @@ func (m *Manager) Stop() error {
 	return err
 }
 
+// handleIndex serves the initial HTML shell.
 func (m *Manager) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(m.shell))
 }
 
+// handleWS upgrades the connection and forwards browser messages to the loop.
 func (m *Manager) handleWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := m.upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -136,10 +144,12 @@ func (m *Manager) handleWS(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SetGoToLineHandler registers the callback for browser go-to-line requests.
 func (m *Manager) SetGoToLineHandler(fn func(contracts.GoToLineMessage)) {
 	m.OnGoToLine = fn
 }
 
+// handleAsset serves local markdown assets via encoded absolute paths.
 func (m *Manager) handleAsset(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -173,6 +183,7 @@ func (m *Manager) handleAsset(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, assetPath)
 }
 
+// runLoop serializes state updates and websocket writes on a single goroutine.
 func (m *Manager) runLoop() {
 	var conn *websocket.Conn
 
@@ -256,7 +267,6 @@ func (m *Manager) runLoop() {
 				}
 			}
 
-
 		case <-m.stopLoop:
 			if conn != nil {
 				_ = conn.Close()
@@ -267,6 +277,7 @@ func (m *Manager) runLoop() {
 	}
 }
 
+// writeJSON writes a JSON message and reports whether the connection is usable.
 func writeJSON(conn *websocket.Conn, v any) bool {
 	if err := conn.WriteJSON(v); err != nil {
 		_ = conn.Close()

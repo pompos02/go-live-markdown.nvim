@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Go Live Markdown</title>
   <style>
+    /* Theme variables and design tokens. */
     :root {
       color-scheme: dark;
       --bg: #151515;
@@ -120,6 +121,7 @@
       margin-bottom: 0;
     }
 
+    /* Base markdown element styling. */
     .md-root h1,
     .md-root h2,
     .md-root h3,
@@ -233,6 +235,7 @@
       color: var(--syn-text);
     }
 
+    /* Chroma/highlight token color mapping. */
     .md-root .tok-comment,
     .md-root .chroma .c,
     .md-root .chroma .c1,
@@ -327,6 +330,7 @@
       color: var(--syn-punctuation);
     }
 
+    /* Table styling tuned for dense technical docs. */
     .md-root table {
       border-collapse: separate;
       border-spacing: 0;
@@ -379,6 +383,7 @@
       border-top: 1px solid #444444;
     }
 
+    /* Task list checkboxes and completed-item visuals. */
     .md-root input[type="checkbox"] {
       appearance: none;
       -webkit-appearance: none;
@@ -443,6 +448,7 @@
       color: var(--task-done);
     }
 
+    /* Alert/callout blocks from markdown extensions. */
     .md-root .markdown-alert {
       padding: 0.5em 1em 0.7em;
       color: var(--text);
@@ -648,6 +654,7 @@
 
   <script>
     (function () {
+      // DOM anchors and connection state.
       var root = document.querySelector(".md-root");
       var filenameEl = document.getElementById("preview-filename");
       var connectionIndicatorEl = document.getElementById("preview-conn-indicator");
@@ -666,6 +673,7 @@
       var currentFilename = "[No Name]";
       var isConnected = false;
 
+      // Auto-follow tuning constants.
       var MANUAL_SCROLL_COOLDOWN_MS = 220;
       var FOLLOW_SNAP_DISTANCE_PX = 0.6;
       var COMFORT_TOP = 0.30;
@@ -690,6 +698,7 @@
         return Number.isFinite(n) ? n : fallback;
       }
 
+      // Build a sorted index of rendered elements by source markdown line.
       function buildLineMap() {
         var candidates = root.querySelectorAll("[data-md-line]");
         var out = [];
@@ -760,6 +769,7 @@
         );
       }
 
+      // Smooth follow animation for cursor tracking.
       function stepFollow(ts) {
         if (followTargetTop === null) {
           stopFollowAnimation();
@@ -830,6 +840,7 @@
         return maxScrollTop() * ratio;
       }
 
+      // Keep the active line in a comfort zone rather than hard-centering.
       function outsideComfortZone(targetEl) {
         if (!targetEl) return true;
 
@@ -841,6 +852,7 @@
         return rect.top < comfortTopPx || rect.bottom > comfortBottomPx;
       }
 
+      // Binary search for the nearest mapped line not after the requested line.
       function pickTarget(line) {
         if (lineMap.length === 0) return null;
 
@@ -912,6 +924,7 @@
         animateToScrollTop(top, !!force);
       }
 
+      // WebSocket lifecycle: connect, reconcile revisions, and retry on close.
       function connect() {
         var proto = window.location.protocol === "https:" ? "wss:" : "ws:";
         var url = proto + "//" + window.location.host + "/ws";
@@ -1015,6 +1028,7 @@
         );
       }
 
+      // Double-click in preview requests an editor cursor jump.
       function handlePreviewDoubleClick(event) {
         if (!event || event.defaultPrevented) return;
         if (event.button !== 0) return;

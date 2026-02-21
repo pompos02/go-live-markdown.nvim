@@ -23,7 +23,7 @@ import (
 
 const mdLineAttribute = "data-md-line"
 
-// Renderer is a wrapper around the Goldmark mardown parser with pre-configured extensions
+// Renderer wraps Goldmark with the plugin's markdown extensions and options.
 type Renderer struct {
 	md goldmark.Markdown
 }
@@ -31,6 +31,7 @@ type Renderer struct {
 //go:embed page.html
 var pageTemplate string
 
+// NewRenderer builds a renderer configured for GitHub-style markdown preview.
 func NewRenderer() *Renderer {
 	md := goldmark.New(
 		goldmark.WithExtensions(
