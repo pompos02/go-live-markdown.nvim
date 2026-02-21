@@ -40,3 +40,8 @@ func (s *LivePreview) PublishCursor(line int, col int) error {
 		Col:  col,
 	})
 }
+
+// SetGoToLineHandler forwards the handler registration to the transport manager
+func (s *LivePreview) SetGoToLineHandler(fn func(contracts.GoToLineMessage)) {
+	s.preview.SetGoToLineHandler(fn)
+}

@@ -4,6 +4,7 @@ package httptransport
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -28,6 +29,9 @@ type Manager struct {
 	started bool
 	server  *http.Server
 
+	OnGoToLine func(contracts.GoToLineMessage)
+	browserMsg chan []byte
+
 	updates    chan renderPayload
 	cursors    chan contracts.CursorMessage
 	register   chan *websocket.Conn
@@ -39,8 +43,10 @@ type Manager struct {
 
 func NewManager(addr string, shell string) *Manager {
 	return &Manager{
-		addr:       addr,
-		shell:      shell,
+		addr:  addr,
+		shell: shell,
+
+		browserMsg: make(chan []byte, 64),
 		updates:    make(chan renderPayload, 8),
 		cursors:    make(chan contracts.CursorMessage, 32),
 		register:   make(chan *websocket.Conn),
@@ -120,11 +126,18 @@ func (m *Manager) handleWS(w http.ResponseWriter, r *http.Request) {
 		m.unregister <- conn
 	}()
 
+	// Block here until the connection closes / errors outs
 	for {
-		if _, _, err := conn.ReadMessage(); err != nil {
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
 			return
 		}
+		m.browserMsg <- msg
 	}
+}
+
+func (m *Manager) SetGoToLineHandler(fn func(contracts.GoToLineMessage)) {
+	m.OnGoToLine = fn
 }
 
 func (m *Manager) handleAsset(w http.ResponseWriter, r *http.Request) {
@@ -226,6 +239,23 @@ func (m *Manager) runLoop() {
 				_ = conn.Close()
 				conn = nil
 			}
+
+		case raw := <-m.browserMsg:
+			var envelope contracts.IncomingMessage
+			if err := json.Unmarshal(raw, &envelope); err != nil {
+				continue
+			}
+			switch envelope.Type {
+			case contracts.MessageTypeGoToLine:
+				var msg contracts.GoToLineMessage
+				if err := json.Unmarshal(raw, &msg); err != nil {
+					continue
+				}
+				if m.OnGoToLine != nil {
+					m.OnGoToLine(msg)
+				}
+			}
+
 
 		case <-m.stopLoop:
 			if conn != nil {

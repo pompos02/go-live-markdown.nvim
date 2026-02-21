@@ -975,6 +975,69 @@
         };
       }
 
+      function isInteractiveTarget(el) {
+        if (!el || !(el instanceof Element)) return false;
+        if (el.closest("a[href], button, input, textarea, select, summary")) {
+          return true;
+        }
+        return false;
+      }
+
+      function pickLineElementFromEvent(event) {
+        if (!event) return null;
+
+        var target = event.target;
+        if (target && target.nodeType === Node.TEXT_NODE) {
+          target = target.parentElement;
+        }
+
+        if (!(target instanceof Element)) return null;
+
+        var lineEl = target.closest("[data-md-line]");
+        if (lineEl) return lineEl;
+
+        var fromPoint = document.elementFromPoint(event.clientX, event.clientY);
+        if (!(fromPoint instanceof Element)) return null;
+        return fromPoint.closest("[data-md-line]");
+      }
+
+      function sendGoToLine(line) {
+        if (!Number.isFinite(line) || line < 1) return;
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+        socket.send(
+          JSON.stringify({
+            type: "go_to_line",
+            line: line,
+            col: 1,
+            rev: latestRev,
+          })
+        );
+      }
+
+      function handlePreviewDoubleClick(event) {
+        if (!event || event.defaultPrevented) return;
+        if (event.button !== 0) return;
+        if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+
+        var targetEl = event.target;
+        if (targetEl && targetEl.nodeType === Node.TEXT_NODE) {
+          targetEl = targetEl.parentElement;
+        }
+
+        if (isInteractiveTarget(targetEl)) {
+          return;
+        }
+
+        var lineEl = pickLineElementFromEvent(event);
+        if (!lineEl) return;
+
+        var line = toInt(lineEl.getAttribute("data-md-line"), NaN);
+        if (!Number.isFinite(line) || line < 1) return;
+
+        sendGoToLine(line);
+      }
+
       window.addEventListener("wheel", markManualScrollIntent, { passive: true });
       window.addEventListener("touchstart", markManualScrollIntent, { passive: true });
       window.addEventListener("touchmove", markManualScrollIntent, { passive: true });
@@ -983,6 +1046,7 @@
           markManualScrollIntent();
         }
       });
+      root.addEventListener("dblclick", handlePreviewDoubleClick);
 
       updateTitle();
       connect();
