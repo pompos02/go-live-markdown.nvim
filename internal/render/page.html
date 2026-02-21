@@ -140,18 +140,39 @@
     .md-root h4,
     .md-root h5,
     .md-root h6 {
-      color: var(--text-strong);
+      color: #ffffff;
+      font-weight: 700;
       line-height: 1.28;
       margin-top: 1.4em;
       margin-bottom: 0.4em;
       position: relative;
-      padding-left: 1.1em;
       transition: color 120ms ease, text-decoration-color 120ms ease;
     }
 
     .md-root h1 {
+      font-size: 2.2rem;
       border-bottom: 1px solid var(--border);
       padding-bottom: 0.25em;
+    }
+
+    .md-root h2 {
+      font-size: 1.85rem;
+    }
+
+    .md-root h3 {
+      font-size: 1.55rem;
+    }
+
+    .md-root h4 {
+      font-size: 1.3rem;
+    }
+
+    .md-root h5 {
+      font-size: 1.12rem;
+    }
+
+    .md-root h6 {
+      font-size: 1rem;
     }
 
     .md-root a {
@@ -178,6 +199,7 @@
       position: absolute;
       left: 0;
       top: 0;
+      transform: translateX(calc(-100% - 0.3em));
       opacity: 0;
       margin: 0;
       text-decoration: none !important;
