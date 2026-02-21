@@ -274,15 +274,31 @@
       overflow-x: auto;
     }
 
-    .md-root pre[data-lang]::before {
-      content: attr(data-lang);
+    .md-root .code-lang-copy {
       position: absolute;
       top: 6px;
       right: 10px;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      color: var(--text-muted);
       font-size: 0.68rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--text-muted);
+      line-height: 1;
+      cursor: pointer;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 180ms ease;
+    }
+
+    .md-root .code-lang-copy:focus {
+      outline: none;
+    }
+
+    .md-root .code-lang-copy.is-copy-flash {
+      color: var(--accent);
     }
 
     .md-root pre code {
@@ -801,6 +817,95 @@
 
           pre.setAttribute("data-lang", lang);
         }
+
+        var preBlocks = rootEl.querySelectorAll("pre[data-lang]");
+        for (var j = 0; j < preBlocks.length; j++) {
+          var preEl = preBlocks[j];
+          var preLang = preEl.getAttribute("data-lang");
+          if (!preLang) continue;
+
+          var copyButton = preEl.querySelector(".code-lang-copy");
+          if (!copyButton) {
+            copyButton = document.createElement("button");
+            copyButton.type = "button";
+            copyButton.className = "code-lang-copy";
+            preEl.insertBefore(copyButton, preEl.firstChild);
+          }
+
+          copyButton.textContent = preLang;
+          copyButton.setAttribute("aria-label", "Copy " + preLang + " code to clipboard");
+        }
+      }
+
+      function flashCodeLangBadge(preEl) {
+        if (!preEl) return;
+        var badge = preEl.querySelector(".code-lang-copy");
+        if (!badge) return;
+
+        badge.classList.remove("is-copy-flash");
+        void badge.offsetWidth;
+        badge.classList.add("is-copy-flash");
+        setTimeout(function () {
+          badge.classList.remove("is-copy-flash");
+        }, 220);
+      }
+
+      function writeClipboard(text) {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function" && window.isSecureContext) {
+          return navigator.clipboard.writeText(text);
+        }
+
+        return new Promise(function (resolve, reject) {
+          var textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.setAttribute("readonly", "");
+          textarea.style.position = "fixed";
+          textarea.style.left = "-9999px";
+          textarea.style.opacity = "0";
+          textarea.style.pointerEvents = "none";
+          document.body.appendChild(textarea);
+          textarea.select();
+
+          try {
+            if (!document.execCommand("copy")) {
+              reject(new Error("copy failed"));
+              return;
+            }
+            resolve();
+          } catch (err) {
+            reject(err);
+          } finally {
+            document.body.removeChild(textarea);
+          }
+        });
+      }
+
+      function handleCodeLangClick(event) {
+        if (!event || event.defaultPrevented) return;
+
+        var target = event.target;
+        if (target && target.nodeType === Node.TEXT_NODE) {
+          target = target.parentElement;
+        }
+
+        if (!(target instanceof Element)) return;
+        var button = target.closest(".code-lang-copy");
+        if (!(button instanceof HTMLButtonElement)) return;
+
+        var preEl = button.closest("pre[data-lang]");
+        if (!(preEl instanceof HTMLElement)) return;
+
+        var codeEl = preEl.querySelector("code");
+        var codeText = codeEl ? codeEl.textContent : "";
+        if (typeof codeText !== "string") {
+          codeText = "";
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        flashCodeLangBadge(preEl);
+
+        writeClipboard(codeText).catch(function () {});
       }
 
       // Build a sorted index of rendered elements by source markdown line.
@@ -1283,6 +1388,7 @@
       });
       root.addEventListener("click", handleWikilinkClick);
       root.addEventListener("auxclick", handleWikilinkClick);
+      root.addEventListener("click", handleCodeLangClick);
       root.addEventListener("click", handleHeadingClick);
       root.addEventListener("dblclick", handlePreviewDoubleClick);
 
