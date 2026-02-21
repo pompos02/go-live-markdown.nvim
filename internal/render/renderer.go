@@ -20,6 +20,8 @@ import (
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 	alertcallouts "github.com/zmtcreative/gm-alert-callouts"
+	"go.abhg.dev/goldmark/anchor"
+	mathjax "github.com/litao91/goldmark-mathjax"
 )
 
 const mdLineAttribute = "data-md-line"
@@ -36,12 +38,17 @@ var pageTemplate string
 func NewRenderer() *Renderer {
 	md := goldmark.New(
 		goldmark.WithExtensions(
+			mathjax.MathJax,
 			alertcallouts.AlertCallouts,
 			extension.GFM,
 			extension.Table,
 			extension.Strikethrough,
 			extension.TaskList,
 			extension.Linkify,
+			&anchor.Extender{
+				Texter:   anchor.Text("§"),
+				Position: anchor.Before,
+			},
 			highlighting.NewHighlighting(
 				highlighting.WithWrapperRenderer(renderHighlightedCodeWrapper),
 				highlighting.WithFormatOptions(
@@ -52,7 +59,9 @@ func NewRenderer() *Renderer {
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
-		goldmark.WithRendererOptions(html.WithUnsafe()),
+		goldmark.WithRendererOptions(
+			html.WithHardWraps(),
+			html.WithUnsafe()),
 	)
 	return &Renderer{md: md}
 }

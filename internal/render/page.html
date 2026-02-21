@@ -132,6 +132,9 @@
       line-height: 1.28;
       margin-top: 1.4em;
       margin-bottom: 0.4em;
+      position: relative;
+      padding-left: 1.1em;
+      transition: color 120ms ease, text-decoration-color 120ms ease;
     }
 
     .md-root h1 {
@@ -142,6 +145,54 @@
     .md-root a {
       color: var(--accent);
       text-decoration: underline;
+    }
+
+    .md-root h1 > a.anchor,
+    .md-root h2 > a.anchor,
+    .md-root h3 > a.anchor,
+    .md-root h4 > a.anchor,
+    .md-root h5 > a.anchor,
+    .md-root h6 > a.anchor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      margin: 0;
+      text-decoration: none !important;
+      transition: opacity 120ms ease;
+    }
+
+    .md-root h1:hover,
+    .md-root h2:hover,
+    .md-root h3:hover,
+    .md-root h4:hover,
+    .md-root h5:hover,
+    .md-root h6:hover,
+    .md-root h1:focus-within,
+    .md-root h2:focus-within,
+    .md-root h3:focus-within,
+    .md-root h4:focus-within,
+    .md-root h5:focus-within,
+    .md-root h6:focus-within {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 0.12em;
+      cursor: pointer;
+    }
+
+    .md-root h1:hover > a.anchor,
+    .md-root h2:hover > a.anchor,
+    .md-root h3:hover > a.anchor,
+    .md-root h4:hover > a.anchor,
+    .md-root h5:hover > a.anchor,
+    .md-root h6:hover > a.anchor,
+    .md-root h1:focus-within > a.anchor,
+    .md-root h2:focus-within > a.anchor,
+    .md-root h3:focus-within > a.anchor,
+    .md-root h4:focus-within > a.anchor,
+    .md-root h5:focus-within > a.anchor,
+    .md-root h6:focus-within > a.anchor {
+      opacity: 1;
     }
 
     .md-root p,
@@ -672,9 +723,12 @@
       var manualScrollCooldownUntil = 0;
       var currentFilename = "[No Name]";
       var isConnected = false;
+      var headingClickTimer = 0;
 
       // Auto-follow tuning constants.
       var MANUAL_SCROLL_COOLDOWN_MS = 220;
+      var HEADING_CLICK_DELAY_MS = 240;
+      var HEADING_NAV_COOLDOWN_MS = 900;
       var FOLLOW_SNAP_DISTANCE_PX = 0.6;
       var COMFORT_TOP = 0.30;
       var COMFORT_BOTTOM = 0.30;
@@ -749,10 +803,19 @@
         followLastTs = 0;
       }
 
-      function markManualScrollIntent() {
-        manualScrollCooldownUntil = performance.now() + MANUAL_SCROLL_COOLDOWN_MS;
+      function suppressAutoFollow(ms) {
+        var cooldown = Number(ms);
+        if (!Number.isFinite(cooldown)) {
+          cooldown = MANUAL_SCROLL_COOLDOWN_MS;
+        }
+        cooldown = Math.max(MANUAL_SCROLL_COOLDOWN_MS, cooldown);
+        manualScrollCooldownUntil = performance.now() + cooldown;
         followTargetTop = getScrollTop();
         stopFollowAnimation();
+      }
+
+      function markManualScrollIntent() {
+        suppressAutoFollow(MANUAL_SCROLL_COOLDOWN_MS);
       }
 
       function isScrollKey(event) {
@@ -1028,8 +1091,94 @@
         );
       }
 
+      function pickHeadingFromEvent(event) {
+        if (!event) return null;
+
+        var target = event.target;
+        if (target && target.nodeType === Node.TEXT_NODE) {
+          target = target.parentElement;
+        }
+
+        if (!(target instanceof Element)) return null;
+        var heading = target.closest("h1, h2, h3, h4, h5, h6");
+        if (!(heading instanceof HTMLElement)) return null;
+        return heading;
+      }
+
+      function clearHeadingClickTimer() {
+        if (!headingClickTimer) return;
+        clearTimeout(headingClickTimer);
+        headingClickTimer = 0;
+      }
+
+      function headingTextHit(heading, event) {
+        if (!heading || !event || !document.createRange) return false;
+
+        var range = document.createRange();
+        range.selectNodeContents(heading);
+        var rects = range.getClientRects();
+        if (!rects || rects.length === 0) return false;
+
+        var x = event.clientX;
+        var y = event.clientY;
+        for (var i = 0; i < rects.length; i++) {
+          var rect = rects[i];
+          if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      function navigateToHeadingAnchor(heading) {
+        if (!heading) return;
+
+        var anchorEl = heading.querySelector("a.anchor[href^='#']");
+        var href = anchorEl ? anchorEl.getAttribute("href") : "";
+        if (!href && heading.id) {
+          href = "#" + heading.id;
+        }
+        if (!href || href.charAt(0) !== "#") return;
+
+        suppressAutoFollow(HEADING_NAV_COOLDOWN_MS);
+
+        if (window.location.hash !== href) {
+          window.location.hash = href;
+          setTimeout(function () {
+            suppressAutoFollow(HEADING_NAV_COOLDOWN_MS);
+          }, 0);
+          return;
+        }
+
+        if (heading.scrollIntoView) {
+          heading.scrollIntoView({ block: "start", behavior: "auto" });
+        }
+        suppressAutoFollow(HEADING_NAV_COOLDOWN_MS);
+      }
+
+      // Single-clicking a heading navigates to that heading anchor.
+      function handleHeadingClick(event) {
+        if (!event || event.defaultPrevented) return;
+        if (event.button !== 0) return;
+        if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+
+        var heading = pickHeadingFromEvent(event);
+        if (!heading) return;
+        if (!headingTextHit(heading, event)) return;
+        if (event.detail > 1) return;
+
+        event.preventDefault();
+        clearHeadingClickTimer();
+        headingClickTimer = setTimeout(function () {
+          headingClickTimer = 0;
+          navigateToHeadingAnchor(heading);
+        }, HEADING_CLICK_DELAY_MS);
+      }
+
       // Double-click in preview requests an editor cursor jump.
       function handlePreviewDoubleClick(event) {
+        clearHeadingClickTimer();
         if (!event || event.defaultPrevented) return;
         if (event.button !== 0) return;
         if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
@@ -1060,6 +1209,7 @@
           markManualScrollIntent();
         }
       });
+      root.addEventListener("click", handleHeadingClick);
       root.addEventListener("dblclick", handlePreviewDoubleClick);
 
       updateTitle();

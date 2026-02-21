@@ -5,10 +5,12 @@ go 1.25.6
 require (
 	github.com/alecthomas/chroma v0.10.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/litao91/goldmark-mathjax v0.0.0-20210217064022-a43cf739a50f
 	github.com/neovim/go-client v1.2.1
 	github.com/yuin/goldmark v1.7.16
 	github.com/yuin/goldmark-highlighting v0.0.0-20220208100518-594be1970594
 	github.com/zmtcreative/gm-alert-callouts v0.8.0
+	go.abhg.dev/goldmark/anchor v0.2.0
 )
 
 require (
