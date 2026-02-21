@@ -3,6 +3,7 @@ package host
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 
 	"go-live-markdown/internal/app"
 
@@ -16,7 +17,6 @@ import (
 type Commands struct {
 	preview      *app.LivePreview
 	active       bool
-	activeBuffer nvim.Buffer
 
 	lastCursorLine int
 	lastCursorCol  int
@@ -50,16 +50,11 @@ func Register(p *plugin.Plugin) error {
 }
 
 func (c *Commands) GoLiveMarkdownStart(v *nvim.Nvim) error {
-	buf, err := v.CurrentBuffer()
-	if err != nil {
-		return err
-	}
 	c.active = true
-	c.activeBuffer = buf
 	c.lastCursorLine = 0
 	c.lastCursorCol = 0
 
-	if err := c.publishBuffer(v, buf); err != nil {
+	if err := c.publishBuffer(v); err != nil {
 		return err
 	}
 
@@ -75,45 +70,29 @@ func (c *Commands) GoLiveMarkdownUpdate(v *nvim.Nvim) error {
 		return nil
 	}
 
-	buf, err := c.currentActiveBuffer(v)
-	if err != nil {
-		return err
-	}
-
-	return c.publishBuffer(v, buf)
+	return c.publishBuffer(v)
 }
 
 func (c *Commands) GoLiveMarkdownCursor(v *nvim.Nvim) error {
 	if !c.active {
 		return nil
 	}
-
-	buf, err := c.currentActiveBuffer(v)
-	if err != nil {
-		return err
-	}
-	if buf == 0 {
-		return nil
-	}
-
 	return c.publishCursor(v)
 }
 
-func (c *Commands) currentActiveBuffer(v *nvim.Nvim) (nvim.Buffer, error) {
-	buf, err := v.CurrentBuffer()
+func (c *Commands) currentActiveFilename(v *nvim.Nvim) (string, error) {
+	name, err := v.BufferName(0)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
+	filename := filepath.Base(name)
 
-	if buf != c.activeBuffer {
-		return 0, nil
-	}
-
-	return buf, nil
+	return filename, nil
 }
 
-func (c *Commands) publishBuffer(v *nvim.Nvim, buf nvim.Buffer) error {
-	if buf == 0 {
+func (c *Commands) publishBuffer(v *nvim.Nvim) error {
+	buf, err := v.CurrentBuffer()
+	if err != nil {
 		return nil
 	}
 

@@ -20,14 +20,14 @@ local function host_prog()
 end
 
 function _G.go_live_markdown_require_host(host)
-  local prog = host_prog()
-  if prog == "" then
-    vim.notify(
-      "go-live-markdown host binary not found; run ./build or set g:go_live_markdown_host_prog",
-      vim.log.levels.ERROR
-    )
-    return 0
-  end
+    local prog = host_prog()
+    if prog == "" then
+        vim.notify(
+            "go-live-markdown host binary not found; run ./build or set g:go_live_markdown_host_prog",
+            vim.log.levels.ERROR
+        )
+        return 0
+    end
 
     return vim.fn["provider#Poll"]({ prog }, host.orig_name, "$NVIM_GO_LIVE_MARKDOWN_LOG_FILE")
 end
@@ -50,17 +50,25 @@ local group = vim.api.nvim_create_augroup("go_live_markdown_updates", { clear = 
 --------------------------------------------------------------------------------
 
 vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
-  group = group,
-  pattern = "*.md",
-  callback = function()
-    pcall(vim.api.nvim_call_function, "GoLiveMarkdownInternalUpdate", {})
-  end,
+    group = group,
+    pattern = "*.md",
+    callback = function()
+        pcall(vim.api.nvim_call_function, "GoLiveMarkdownInternalUpdate", {})
+    end,
 })
 
 vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-  group = group,
-  pattern = "*.md",
-  callback = function()
-    pcall(vim.api.nvim_call_function, "GoLiveMarkdownInternalCursor", {})
-  end,
+    group = group,
+    pattern = "*.md",
+    callback = function()
+        pcall(vim.api.nvim_call_function, "GoLiveMarkdownInternalCursor", {})
+    end,
+})
+
+vim.api.nvim_create_autocmd({ "BufEnter", "BufLeave" }, {
+    group = group,
+    pattern = "*.md",
+    callback = function()
+        pcall(vim.api.nvim_call_function, "GoLiveMarkdownInternalUpdate", {})
+    end,
 })
