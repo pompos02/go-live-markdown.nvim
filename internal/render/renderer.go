@@ -193,7 +193,7 @@ func shouldAnnotateNode(n ast.Node) bool {
 		ast.KindParagraph,
 		ast.KindBlockquote,
 		ast.KindFencedCodeBlock,
-		ast.KindList,
+		// ast.KindList,
 		ast.KindListItem,
 		ast.KindThematicBreak,
 		extensionast.KindTable:
@@ -212,8 +212,10 @@ func firstNodeOffset(n ast.Node) (int, bool) {
 		return 0, false
 	}
 
-	if lines := n.Lines(); lines != nil && lines.Len() > 0 {
-		return lines.At(0).Start, true
+	if n.Type() != ast.TypeInline {
+		if lines := n.Lines(); lines != nil && lines.Len() > 0 {
+			return lines.At(0).Start, true
+		}
 	}
 
 	for child := n.FirstChild(); child != nil; child = child.NextSibling() {

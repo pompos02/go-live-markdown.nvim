@@ -75,7 +75,7 @@ vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     end,
 })
 
-vim.api.nvim_create_autocmd({ "BufEnter", "BufLeave" }, {
+vim.api.nvim_create_autocmd({ "BufEnter" }, {
     group = group,
     pattern = "*.md",
     callback = function()
