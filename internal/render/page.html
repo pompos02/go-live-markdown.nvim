@@ -55,6 +55,7 @@
       --syn-property: #cc8c3c;
       --syn-operator: #dddddd;
       --syn-punctuation: #aaaaaa;
+      --follow-tail-space: clamp(240px, 55vh, 720px);
     }
 
     * {
@@ -114,6 +115,13 @@
       line-height: 1.62;
       font-size: 0.95rem;
       overflow-anchor: none;
+    }
+
+    .md-root::after {
+      content: "";
+      display: block;
+      height: var(--follow-tail-space);
+      pointer-events: none;
     }
 
     .md-root [data-md-line] {
@@ -751,6 +759,10 @@
       .md-root {
         padding: 16px 14px;
         min-height: calc(100vh - 80px);
+      }
+
+      :root {
+        --follow-tail-space: clamp(180px, 48vh, 460px);
       }
     }
   </style>
