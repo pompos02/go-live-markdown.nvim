@@ -66,7 +66,7 @@
       margin: 0;
       padding: 18px 14px 28px;
       color: var(--text);
-      font-family:  "Berkeley Mono", "IosevkaCustom Nerd Font Mono", Inter,"Segoe UI Variable Text", "Segoe UI",  Consolas, "Fira Code", "IBM Plex Mono", "Cascadia Code", "JetBrains Mono", "SFMono-Regular", monospace;
+      font-family: monospace;
       font-size: 15px;
       background: var(--bg);
     }
@@ -143,14 +143,10 @@
     }
 
     /* Base markdown element styling. */
-    .md-root h1,
-    .md-root h2,
-    .md-root h3,
-    .md-root h4,
-    .md-root h5,
-    .md-root h6 {
+    .md-root :is(h1, h2, h3, h4, h5, h6) {
       color: #ffffff;
-      font-weight: 700;
+      font-family: "Palatino", serif;
+      font-weight: 400;
       line-height: 1.28;
       margin-top: 1.4em;
       margin-bottom: 0.4em;
@@ -199,12 +195,7 @@
       cursor: default;
     }
 
-    .md-root h1 > a.anchor,
-    .md-root h2 > a.anchor,
-    .md-root h3 > a.anchor,
-    .md-root h4 > a.anchor,
-    .md-root h5 > a.anchor,
-    .md-root h6 > a.anchor {
+    .md-root :is(h1, h2, h3, h4, h5, h6) > a.anchor {
       position: absolute;
       left: 0;
       top: 0;
@@ -215,36 +206,14 @@
       transition: opacity 120ms ease;
     }
 
-    .md-root h1:hover,
-    .md-root h2:hover,
-    .md-root h3:hover,
-    .md-root h4:hover,
-    .md-root h5:hover,
-    .md-root h6:hover,
-    .md-root h1:focus-within,
-    .md-root h2:focus-within,
-    .md-root h3:focus-within,
-    .md-root h4:focus-within,
-    .md-root h5:focus-within,
-    .md-root h6:focus-within {
+    .md-root :is(h1, h2, h3, h4, h5, h6):is(:hover, :focus-within) {
       color: var(--accent);
       text-decoration: underline;
       text-underline-offset: 0.12em;
       cursor: pointer;
     }
 
-    .md-root h1:hover > a.anchor,
-    .md-root h2:hover > a.anchor,
-    .md-root h3:hover > a.anchor,
-    .md-root h4:hover > a.anchor,
-    .md-root h5:hover > a.anchor,
-    .md-root h6:hover > a.anchor,
-    .md-root h1:focus-within > a.anchor,
-    .md-root h2:focus-within > a.anchor,
-    .md-root h3:focus-within > a.anchor,
-    .md-root h4:focus-within > a.anchor,
-    .md-root h5:focus-within > a.anchor,
-    .md-root h6:focus-within > a.anchor {
+    .md-root :is(h1, h2, h3, h4, h5, h6):is(:hover, :focus-within) > a.anchor {
       opacity: 1;
     }
 
@@ -285,7 +254,7 @@
     .md-root code,
     .md-root pre,
     .md-root .mono {
-      font-family: "Berkeley Mono", "IosevkaCustom Nerd Font Mono", Consolas, "Fira Code", "IBM Plex Mono", "Cascadia Code", "JetBrains Mono", "SFMono-Regular", monospace;
+      font-family: "Berkeley Mono", monospace;
     }
 
     .md-root :not(pre) > code {
@@ -570,10 +539,12 @@
 
     /* Alert/callout blocks from markdown extensions. */
     .md-root .markdown-alert {
+      --alert-accent: var(--border);
       padding: 0.5em 1em 0.7em;
       color: var(--text);
       border-left-width: 0.25em;
       border-left-style: solid;
+      border-left-color: var(--alert-accent);
       margin-bottom: 1em;
     }
 
@@ -592,6 +563,7 @@
       margin-bottom: 0.55em;
       font-weight: 600;
       line-height: 1;
+      color: var(--alert-accent);
     }
 
     .md-root .markdown-alert .markdown-alert-icon {
@@ -602,50 +574,32 @@
     }
 
     .md-root .markdown-alert.markdown-alert-note {
-      border-left-color: var(--alert-note);
-    }
-
-    .md-root .markdown-alert.markdown-alert-note .markdown-alert-title {
-      color: var(--alert-note);
+      --alert-accent: var(--alert-note);
     }
 
     .md-root .markdown-alert.markdown-alert-tip {
-      border-left-color: var(--alert-tip);
-    }
-
-    .md-root .markdown-alert.markdown-alert-tip .markdown-alert-title {
-      color: var(--alert-tip);
+      --alert-accent: var(--alert-tip);
     }
 
     .md-root .markdown-alert.markdown-alert-important {
-      border-left-color: var(--alert-important);
-    }
-
-    .md-root .markdown-alert.markdown-alert-important .markdown-alert-title {
-      color: var(--alert-important);
+      --alert-accent: var(--alert-important);
     }
 
     .md-root .markdown-alert.markdown-alert-warning {
-      border-left-color: var(--alert-warning);
-    }
-
-    .md-root .markdown-alert.markdown-alert-warning .markdown-alert-title {
-      color: var(--alert-warning);
+      --alert-accent: var(--alert-warning);
     }
 
     .md-root .markdown-alert.markdown-alert-caution {
-      border-left-color: var(--alert-caution);
-    }
-
-    .md-root .markdown-alert.markdown-alert-caution .markdown-alert-title {
-      color: var(--alert-caution);
+      --alert-accent: var(--alert-caution);
     }
 
     .md-root .callout-title,
     .md-root .callout-body {
+      --callout-border: var(--border);
+      --callout-title-color: var(--alert-note);
       margin: 0;
       padding-left: 1rem;
-      border-left: 0.25em solid var(--border);
+      border-left: 0.25em solid var(--callout-border);
     }
 
     .md-root .callout-title {
@@ -654,7 +608,7 @@
       gap: 0.5rem;
       margin-bottom: 0;
       padding-bottom: 0;
-      color: var(--alert-note);
+      color: var(--callout-title-color);
       font-weight: 600;
       line-height: 1;
     }
@@ -690,61 +644,32 @@
       margin-bottom: 0;
     }
 
-    .md-root .callout-title:has(.lucide-info-icon),
-    .md-root .callout-title:has(.lucide-info-icon) + .callout-body {
-      border-left-color: var(--alert-note);
+    .md-root :is(.callout-title:has(.lucide-info-icon), .callout-title:has(.lucide-info-icon) + .callout-body) {
+      --callout-border: var(--alert-note);
+      --callout-title-color: var(--alert-note);
     }
 
-    .md-root .callout-title:has(.lucide-info-icon) {
-      color: var(--alert-note);
+    .md-root :is(.callout-title:has(.lucide-lightbulb-icon), .callout-title:has(.lucide-lightbulb-icon) + .callout-body) {
+      --callout-border: var(--alert-tip);
+      --callout-title-color: var(--alert-tip);
     }
 
-    .md-root .callout-title:has(.lucide-lightbulb-icon),
-    .md-root .callout-title:has(.lucide-lightbulb-icon) + .callout-body {
-      border-left-color: var(--alert-tip);
+    .md-root :is(
+      .callout-title:has(:is(.lucide-message-square-icon, .lucide-message-square-warning-icon, .lucide-message-circle-warning-icon, [class*="message-square"], [class*="message-circle"])),
+      .callout-title:has(:is(.lucide-message-square-icon, .lucide-message-square-warning-icon, .lucide-message-circle-warning-icon, [class*="message-square"], [class*="message-circle"])) + .callout-body
+    ) {
+      --callout-border: var(--alert-important);
+      --callout-title-color: var(--alert-important);
     }
 
-    .md-root .callout-title:has(.lucide-lightbulb-icon) {
-      color: var(--alert-tip);
+    .md-root :is(.callout-title:has(.lucide-triangle-alert-icon), .callout-title:has(.lucide-triangle-alert-icon) + .callout-body) {
+      --callout-border: var(--alert-warning);
+      --callout-title-color: var(--alert-warning);
     }
 
-    .md-root .callout-title:has(.lucide-message-square-icon),
-    .md-root .callout-title:has(.lucide-message-square-warning-icon),
-    .md-root .callout-title:has(.lucide-message-circle-warning-icon),
-    .md-root .callout-title:has([class*="message-square"]),
-    .md-root .callout-title:has([class*="message-circle"]),
-    .md-root .callout-title:has(.lucide-message-square-icon) + .callout-body,
-    .md-root .callout-title:has(.lucide-message-square-warning-icon) + .callout-body,
-    .md-root .callout-title:has(.lucide-message-circle-warning-icon) + .callout-body,
-    .md-root .callout-title:has([class*="message-square"]) + .callout-body,
-    .md-root .callout-title:has([class*="message-circle"]) + .callout-body {
-      border-left-color: var(--alert-important);
-    }
-
-    .md-root .callout-title:has(.lucide-message-square-icon),
-    .md-root .callout-title:has(.lucide-message-square-warning-icon),
-    .md-root .callout-title:has(.lucide-message-circle-warning-icon),
-    .md-root .callout-title:has([class*="message-square"]),
-    .md-root .callout-title:has([class*="message-circle"]) {
-      color: var(--alert-important);
-    }
-
-    .md-root .callout-title:has(.lucide-triangle-alert-icon),
-    .md-root .callout-title:has(.lucide-triangle-alert-icon) + .callout-body {
-      border-left-color: var(--alert-warning);
-    }
-
-    .md-root .callout-title:has(.lucide-triangle-alert-icon) {
-      color: var(--alert-warning);
-    }
-
-    .md-root .callout-title:has(.lucide-octagon-alert-icon),
-    .md-root .callout-title:has(.lucide-octagon-alert-icon) + .callout-body {
-      border-left-color: var(--alert-caution);
-    }
-
-    .md-root .callout-title:has(.lucide-octagon-alert-icon) {
-      color: var(--alert-caution);
+    .md-root :is(.callout-title:has(.lucide-octagon-alert-icon), .callout-title:has(.lucide-octagon-alert-icon) + .callout-body) {
+      --callout-border: var(--alert-caution);
+      --callout-title-color: var(--alert-caution);
     }
 
     @media (max-width: 900px) {
@@ -778,14 +703,41 @@
 
   <script>
     (function () {
-      // DOM anchors and connection state.
       var root = document.querySelector(".md-root");
-      var filenameEl = document.getElementById("preview-filename");
-      var connectionIndicatorEl = document.getElementById("preview-conn-indicator");
       if (!root) return;
 
+      var filenameEl = document.getElementById("preview-filename");
+      var connectionIndicatorEl = document.getElementById("preview-conn-indicator");
+
+      var DEFAULT_FILENAME = "[No Name]";
+      var SELECTOR_LINE = "[data-md-line]";
+      var SELECTOR_HEADING = "h1, h2, h3, h4, h5, h6";
+      var SELECTOR_WIKILINK = 'a[href^="wikilink:"]';
+      var SELECTOR_INTERACTIVE = "a[href], button, input, textarea, select, summary";
+      var SELECTOR_CODE_BADGE = ".code-lang-copy";
+      var SCROLL_KEYS = {
+        ArrowUp: true,
+        ArrowDown: true,
+        PageUp: true,
+        PageDown: true,
+        Home: true,
+        End: true,
+        " ": true,
+        Spacebar: true,
+      };
+
+      var MANUAL_SCROLL_COOLDOWN_MS = 220;
+      var HEADING_CLICK_DELAY_MS = 240;
+      var HEADING_NAV_COOLDOWN_MS = 900;
+      var FOLLOW_SNAP_DISTANCE_PX = 0.6;
+      var COMFORT_TOP = 0.3;
+      var COMFORT_BOTTOM = 0.3;
+      var COPY_FLASH_MS = 220;
+      var RECONNECT_DELAY_MS = 500;
+      var FOLLOW_RATIO = Math.max(0.05, Math.min(0.95, (COMFORT_TOP + COMFORT_BOTTOM) / 2));
+
       var socket = null;
-      var retryTimer = null;
+      var retryTimer = 0;
       var latestRev = 0;
       var lineMap = [];
       var activeLineEl = null;
@@ -794,18 +746,9 @@
       var followRaf = 0;
       var followLastTs = 0;
       var manualScrollCooldownUntil = 0;
-      var currentFilename = "[No Name]";
+      var currentFilename = DEFAULT_FILENAME;
       var isConnected = false;
       var headingClickTimer = 0;
-
-      // Auto-follow tuning constants.
-      var MANUAL_SCROLL_COOLDOWN_MS = 220;
-      var HEADING_CLICK_DELAY_MS = 240;
-      var HEADING_NAV_COOLDOWN_MS = 900;
-      var FOLLOW_SNAP_DISTANCE_PX = 0.6;
-      var COMFORT_TOP = 0.30;
-      var COMFORT_BOTTOM = 0.30;
-      var FOLLOW_RATIO = Math.max(0.05, Math.min(0.95, (COMFORT_TOP + COMFORT_BOTTOM) / 2));
 
       function updateTitle() {
         document.title = (isConnected ? "" : "! ") + currentFilename;
@@ -825,17 +768,61 @@
         return Number.isFinite(n) ? n : fallback;
       }
 
+      function normalizeFilename(value) {
+        if (typeof value !== "string") return DEFAULT_FILENAME;
+        var trimmed = value.trim();
+        return trimmed || DEFAULT_FILENAME;
+      }
+
+      function toElement(node) {
+        var el = node;
+        if (el && el.nodeType === Node.TEXT_NODE) {
+          el = el.parentElement;
+        }
+        return el instanceof Element ? el : null;
+      }
+
+      function eventTargetElement(event) {
+        if (!event) return null;
+        return toElement(event.target);
+      }
+
+      function closestFromEvent(event, selector) {
+        var target = eventTargetElement(event);
+        if (!target) return null;
+        return target.closest(selector);
+      }
+
+      function isPrimaryPlainClick(event) {
+        if (!event || event.defaultPrevented) return false;
+        if (event.button !== 0) return false;
+        return !(event.metaKey || event.ctrlKey || event.altKey || event.shiftKey);
+      }
+
       function typesetMath(rootEl) {
         if (!rootEl) return;
-        if (!window.MathJax || typeof window.MathJax.typesetPromise !== "function") {
-          return;
-        }
+        if (!window.MathJax || typeof window.MathJax.typesetPromise !== "function") return;
 
         if (typeof window.MathJax.typesetClear === "function") {
           window.MathJax.typesetClear([rootEl]);
         }
 
         window.MathJax.typesetPromise([rootEl]).catch(function () {});
+      }
+
+      function ensureCodeCopyBadge(preEl, lang) {
+        if (!preEl || !lang) return;
+
+        var badge = preEl.querySelector(SELECTOR_CODE_BADGE);
+        if (!badge) {
+          badge = document.createElement("button");
+          badge.type = "button";
+          badge.className = "code-lang-copy";
+          preEl.insertBefore(badge, preEl.firstChild);
+        }
+
+        badge.textContent = lang;
+        badge.setAttribute("aria-label", "Copy " + lang + " code to clipboard");
       }
 
       function syncCodeBlockLanguages(rootEl) {
@@ -856,25 +843,13 @@
         var preBlocks = rootEl.querySelectorAll("pre[data-lang]");
         for (var j = 0; j < preBlocks.length; j++) {
           var preEl = preBlocks[j];
-          var preLang = preEl.getAttribute("data-lang");
-          if (!preLang) continue;
-
-          var copyButton = preEl.querySelector(".code-lang-copy");
-          if (!copyButton) {
-            copyButton = document.createElement("button");
-            copyButton.type = "button";
-            copyButton.className = "code-lang-copy";
-            preEl.insertBefore(copyButton, preEl.firstChild);
-          }
-
-          copyButton.textContent = preLang;
-          copyButton.setAttribute("aria-label", "Copy " + preLang + " code to clipboard");
+          ensureCodeCopyBadge(preEl, preEl.getAttribute("data-lang"));
         }
       }
 
       function flashCodeLangBadge(preEl) {
         if (!preEl) return;
-        var badge = preEl.querySelector(".code-lang-copy");
+        var badge = preEl.querySelector(SELECTOR_CODE_BADGE);
         if (!badge) return;
 
         badge.classList.remove("is-copy-flash");
@@ -882,7 +857,7 @@
         badge.classList.add("is-copy-flash");
         setTimeout(function () {
           badge.classList.remove("is-copy-flash");
-        }, 220);
+        }, COPY_FLASH_MS);
       }
 
       function writeClipboard(text) {
@@ -918,23 +893,14 @@
       function handleCodeLangClick(event) {
         if (!event || event.defaultPrevented) return;
 
-        var target = event.target;
-        if (target && target.nodeType === Node.TEXT_NODE) {
-          target = target.parentElement;
-        }
-
-        if (!(target instanceof Element)) return;
-        var button = target.closest(".code-lang-copy");
+        var button = closestFromEvent(event, SELECTOR_CODE_BADGE);
         if (!(button instanceof HTMLButtonElement)) return;
 
         var preEl = button.closest("pre[data-lang]");
         if (!(preEl instanceof HTMLElement)) return;
 
         var codeEl = preEl.querySelector("code");
-        var codeText = codeEl ? codeEl.textContent : "";
-        if (typeof codeText !== "string") {
-          codeText = "";
-        }
+        var codeText = codeEl && typeof codeEl.textContent === "string" ? codeEl.textContent : "";
 
         event.preventDefault();
         event.stopPropagation();
@@ -943,9 +909,8 @@
         writeClipboard(codeText).catch(function () {});
       }
 
-      // Build a sorted index of rendered elements by source markdown line.
       function buildLineMap() {
-        var candidates = root.querySelectorAll("[data-md-line]");
+        var candidates = root.querySelectorAll(SELECTOR_LINE);
         var out = [];
 
         for (var i = 0; i < candidates.length; i++) {
@@ -978,12 +943,12 @@
       }
 
       function clampScrollTop(top) {
-        var clamped = Number(top);
-        if (!Number.isFinite(clamped)) return window.scrollY || 0;
-        if (clamped < 0) return 0;
+        var nextTop = Number(top);
+        if (!Number.isFinite(nextTop)) return getScrollTop();
+        if (nextTop < 0) return 0;
         var maxTop = maxScrollTop();
-        if (clamped > maxTop) return maxTop;
-        return clamped;
+        if (nextTop > maxTop) return maxTop;
+        return nextTop;
       }
 
       function stopFollowAnimation() {
@@ -1010,20 +975,9 @@
       }
 
       function isScrollKey(event) {
-        var key = event && event.key;
-        return (
-          key === "ArrowUp" ||
-          key === "ArrowDown" ||
-          key === "PageUp" ||
-          key === "PageDown" ||
-          key === "Home" ||
-          key === "End" ||
-          key === " " ||
-          key === "Spacebar"
-        );
+        return !!(event && SCROLL_KEYS[event.key]);
       }
 
-      // Smooth follow animation for cursor tracking.
       function stepFollow(ts) {
         if (followTargetTop === null) {
           stopFollowAnimation();
@@ -1064,15 +1018,14 @@
 
       function animateToScrollTop(top, force) {
         var clampedTop = clampScrollTop(top);
+        followTargetTop = clampedTop;
 
         if (force) {
-          followTargetTop = clampedTop;
           stopFollowAnimation();
           window.scrollTo({ top: clampedTop, behavior: "auto" });
           return;
         }
 
-        followTargetTop = clampedTop;
         if (followRaf === 0) {
           followRaf = requestAnimationFrame(stepFollow);
         }
@@ -1085,16 +1038,13 @@
       }
 
       function targetTopByLineRatio(line) {
-        if (lineMap.length === 0) {
-          return getScrollTop();
-        }
+        if (lineMap.length === 0) return getScrollTop();
 
         var maxLine = Math.max(lineMap[lineMap.length - 1].line, 1);
         var ratio = Math.max(0, Math.min(1, line / maxLine));
         return maxScrollTop() * ratio;
       }
 
-      // Keep the active line in a comfort zone rather than hard-centering.
       function outsideComfortZone(targetEl) {
         if (!targetEl) return true;
 
@@ -1106,7 +1056,6 @@
         return rect.top < comfortTopPx || rect.bottom > comfortBottomPx;
       }
 
-      // Binary search for the nearest mapped line not after the requested line.
       function pickTarget(line) {
         if (lineMap.length === 0) return null;
 
@@ -1160,31 +1109,64 @@
 
       function scrollToLine(line, force) {
         var target = highlightLine(line);
-        if (!force && performance.now() < manualScrollCooldownUntil) {
-          return;
-        }
+        if (!force && performance.now() < manualScrollCooldownUntil) return;
+        if (!force && target && target.el && !outsideComfortZone(target.el)) return;
 
-        if (!force && target && target.el && !outsideComfortZone(target.el)) {
-          return;
-        }
-
-        var top;
-        if (!target || !target.el) {
-          top = targetTopByLineRatio(line);
-        } else {
-          top = targetTopForElement(target.el);
-        }
+        var top = target && target.el ? targetTopForElement(target.el) : targetTopByLineRatio(line);
 
         animateToScrollTop(top, !!force);
       }
 
-      // WebSocket lifecycle: connect, reconcile revisions, and retry on close.
+      function handleRenderMessage(msg) {
+        stopFollowAnimation();
+        followTargetTop = null;
+        setActiveLine(null);
+
+        root.innerHTML = typeof msg.html === "string" ? msg.html : "";
+        currentFilename = normalizeFilename(msg.filename);
+        if (filenameEl) {
+          filenameEl.textContent = currentFilename;
+        }
+        updateTitle();
+
+        latestRev = toInt(msg.rev, latestRev);
+        buildLineMap();
+        syncCodeBlockLanguages(root);
+        typesetMath(root);
+
+        if (lastCursorLine !== null) {
+          scrollToLine(lastCursorLine, false);
+        }
+      }
+
+      function handleCursorMessage(msg) {
+        var rev = toInt(msg.rev, 0);
+        if (rev !== latestRev) return;
+
+        var line = toInt(msg.line, 1);
+        if (lastCursorLine !== null && lastCursorLine === line) return;
+
+        lastCursorLine = line;
+        scrollToLine(line, false);
+      }
+
+      function scheduleReconnect() {
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+        }
+        retryTimer = setTimeout(connect, RECONNECT_DELAY_MS);
+      }
+
       function connect() {
         var proto = window.location.protocol === "https:" ? "wss:" : "ws:";
         var url = proto + "//" + window.location.host + "/ws";
         socket = new WebSocket(url);
 
         socket.onopen = function () {
+          if (retryTimer) {
+            clearTimeout(retryTimer);
+            retryTimer = 0;
+          }
           setConnectionState(true);
         };
 
@@ -1196,39 +1178,14 @@
             return;
           }
 
+          if (!msg || typeof msg.type !== "string") return;
           if (msg.type === "render") {
-            stopFollowAnimation();
-            followTargetTop = null;
-            setActiveLine(null);
-            root.innerHTML = typeof msg.html === "string" ? msg.html : "";
-            currentFilename = typeof msg.filename === "string" ? msg.filename.trim() : "";
-            if (!currentFilename) {
-              currentFilename = "[No Name]";
-            }
-            if (filenameEl) {
-              filenameEl.textContent = currentFilename;
-            }
-            updateTitle();
-            latestRev = toInt(msg.rev, latestRev);
-            buildLineMap();
-            syncCodeBlockLanguages(root);
-            typesetMath(root);
-
-            if (lastCursorLine !== null) {
-              highlightLine(lastCursorLine);
-            }
+            handleRenderMessage(msg);
             return;
           }
 
           if (msg.type === "cursor") {
-            var rev = toInt(msg.rev, 0);
-            if (rev !== latestRev) return;
-
-            var line = toInt(msg.line, 1);
-            if (lastCursorLine !== null && lastCursorLine === line) return;
-
-            lastCursorLine = line;
-            scrollToLine(line, false);
+            handleCursorMessage(msg);
           }
         };
 
@@ -1239,54 +1196,31 @@
 
         socket.onclose = function () {
           setConnectionState(false);
-          if (retryTimer) clearTimeout(retryTimer);
-          retryTimer = setTimeout(connect, 500);
+          scheduleReconnect();
         };
       }
 
       function isInteractiveTarget(el) {
-        if (!el || !(el instanceof Element)) return false;
-        if (el.closest("a[href], button, input, textarea, select, summary")) {
-          return true;
-        }
-        return false;
-      }
-
-      function isWikilinkAnchor(el) {
-        if (!el || !(el instanceof Element)) return false;
-        var anchor = el.closest('a[href^="wikilink:"]');
-        return anchor instanceof HTMLAnchorElement;
+        return !!(el && el.closest(SELECTOR_INTERACTIVE));
       }
 
       function handleWikilinkClick(event) {
         if (!event || event.defaultPrevented) return;
 
-        var target = event.target;
-        if (target && target.nodeType === Node.TEXT_NODE) {
-          target = target.parentElement;
-        }
-
-        if (!isWikilinkAnchor(target)) return;
+        var anchor = closestFromEvent(event, SELECTOR_WIKILINK);
+        if (!(anchor instanceof HTMLAnchorElement)) return;
 
         event.preventDefault();
       }
 
       function pickLineElementFromEvent(event) {
-        if (!event) return null;
-
-        var target = event.target;
-        if (target && target.nodeType === Node.TEXT_NODE) {
-          target = target.parentElement;
-        }
-
-        if (!(target instanceof Element)) return null;
-
-        var lineEl = target.closest("[data-md-line]");
+        var lineEl = closestFromEvent(event, SELECTOR_LINE);
         if (lineEl) return lineEl;
 
+        if (!event) return null;
         var fromPoint = document.elementFromPoint(event.clientX, event.clientY);
-        if (!(fromPoint instanceof Element)) return null;
-        return fromPoint.closest("[data-md-line]");
+        var fromPointEl = toElement(fromPoint);
+        return fromPointEl ? fromPointEl.closest(SELECTOR_LINE) : null;
       }
 
       function sendGoToLine(line) {
@@ -1304,15 +1238,7 @@
       }
 
       function pickHeadingFromEvent(event) {
-        if (!event) return null;
-
-        var target = event.target;
-        if (target && target.nodeType === Node.TEXT_NODE) {
-          target = target.parentElement;
-        }
-
-        if (!(target instanceof Element)) return null;
-        var heading = target.closest("h1, h2, h3, h4, h5, h6");
+        var heading = closestFromEvent(event, SELECTOR_HEADING);
         if (!(heading instanceof HTMLElement)) return null;
         return heading;
       }
@@ -1369,11 +1295,8 @@
         suppressAutoFollow(HEADING_NAV_COOLDOWN_MS);
       }
 
-      // Single-clicking a heading navigates to that heading anchor.
       function handleHeadingClick(event) {
-        if (!event || event.defaultPrevented) return;
-        if (event.button !== 0) return;
-        if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+        if (!isPrimaryPlainClick(event)) return;
 
         var heading = pickHeadingFromEvent(event);
         if (!heading) return;
@@ -1388,21 +1311,13 @@
         }, HEADING_CLICK_DELAY_MS);
       }
 
-      // Double-click in preview requests an editor cursor jump.
       function handlePreviewDoubleClick(event) {
         clearHeadingClickTimer();
-        if (!event || event.defaultPrevented) return;
-        if (event.button !== 0) return;
-        if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+        if (!isPrimaryPlainClick(event)) return;
 
-        var targetEl = event.target;
-        if (targetEl && targetEl.nodeType === Node.TEXT_NODE) {
-          targetEl = targetEl.parentElement;
-        }
+        var targetEl = eventTargetElement(event);
 
-        if (isInteractiveTarget(targetEl)) {
-          return;
-        }
+        if (isInteractiveTarget(targetEl)) return;
 
         var lineEl = pickLineElementFromEvent(event);
         if (!lineEl) return;
@@ -1413,20 +1328,26 @@
         sendGoToLine(line);
       }
 
-      window.addEventListener("wheel", markManualScrollIntent, { passive: true });
-      window.addEventListener("touchstart", markManualScrollIntent, { passive: true });
-      window.addEventListener("touchmove", markManualScrollIntent, { passive: true });
-      window.addEventListener("keydown", function (event) {
-        if (isScrollKey(event)) {
-          markManualScrollIntent();
+      function bindInputListeners() {
+        var manualEvents = ["wheel", "touchstart", "touchmove"];
+        for (var i = 0; i < manualEvents.length; i++) {
+          window.addEventListener(manualEvents[i], markManualScrollIntent, { passive: true });
         }
-      });
-      root.addEventListener("click", handleWikilinkClick);
-      root.addEventListener("auxclick", handleWikilinkClick);
-      root.addEventListener("click", handleCodeLangClick);
-      root.addEventListener("click", handleHeadingClick);
-      root.addEventListener("dblclick", handlePreviewDoubleClick);
 
+        window.addEventListener("keydown", function (event) {
+          if (isScrollKey(event)) {
+            markManualScrollIntent();
+          }
+        });
+
+        root.addEventListener("click", handleWikilinkClick);
+        root.addEventListener("auxclick", handleWikilinkClick);
+        root.addEventListener("click", handleCodeLangClick);
+        root.addEventListener("click", handleHeadingClick);
+        root.addEventListener("dblclick", handlePreviewDoubleClick);
+      }
+
+      bindInputListeners();
       updateTitle();
       connect();
     })();
