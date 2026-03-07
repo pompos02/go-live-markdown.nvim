@@ -1,0 +1,91 @@
+# go-live-markdown.nvim
+
+Highly opinionated live Markdown preview for Neovim, powered by a small Go host with websockets.
+
+## Demos
+
+### Basic live preview
+
+![Basic live preview](gifs/basic.gif)
+
+### Browser to Neovim sync (double click)
+
+![Sync from browser to Neovim](gifs/sync.gif)
+
+### Copy rendered code blocks
+
+![Copy rendered code blocks](gifs/code-copy.gif)
+
+### Live update on buffer change
+
+![Live updates on doc change](gifs/doc_change.gif)
+
+## What it does
+
+- Starts a browser preview with `:GoLiveMarkdownStart`
+- Auto-updates on markdown edits and cursor movement (`*.md`)
+- Syncs browser line clicks back to Neovim (Double click in browser)
+
+## Install and configure
+
+### lazy.nvim
+
+```lua
+{
+  "pompos02/go-live-markdown.nvim",
+  ft = "markdown",
+  config = function()
+    -- Optional: override host binary path.
+    -- vim.g.go_live_markdown_host_prog = "/absolute/path/to/go-live-markdown-nvim"
+  end,
+}
+```
+
+By default, the plugin resolves the host binary in this order:
+1. `vim.g.go_live_markdown_host_prog`
+2. local `./bin/go-live-markdown-nvim` inside the plugin
+3. `go-live-markdown-nvim` from your `$PATH`
+
+## Binary and building
+
+This repository ships with a **Linux binary bundled** at `bin/go-live-markdown-nvim`.
+
+On **macOS** (and other non-Linux systems), build the host binary locally.
+The plugin will then pick up `./bin/go-live-markdown-nvim` automatically.
+
+### lazy.nvim (recommended for non linux systems)
+
+```lua
+{
+  "pompos02/go-live-markdown.nvim",
+  ft = "markdown",
+  build = "./build",
+}
+```
+
+Requirements:
+- `go` must be installed and available in `$PATH`
+- the plugin build step must run at least once
+
+If you want to build it yourself:
+```bash
+./build
+```
+
+That script compiles `./cmd/go-live-markdown-nvim` into `./bin/go-live-markdown-nvim`.
+
+## Quick test
+
+Use `markdown-test.md` in this repository to quickly verify the plugin behavior:
+
+1. Open `markdown-test.md` in Neovim
+2. Run `:GoLiveMarkdownStart`
+3. Edit text and move your cursor to confirm live updates
+4. Double click a line in the browser preview to confirm sync back to Neovim
+
+
+
+> [!NOTE]
+> - A known bug is that only one browser tab is supported reliably at a time right now (the connection jumpts back and forth).
+> - Only one Go host/preview server instance is supported at a time.
+> - Almost all of the client side logic was written by AI
