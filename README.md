@@ -94,6 +94,7 @@ vim.g.go_live_markdown_host_prog = "/absolute/path/to/go-live-markdown-nvim"
 
 - **Double click** a rendered block to jump Neovim to that source line.
 - **Single click heading text** to navigate by heading anchors.
+- **Click the heading anchor** on `h1`-`h3` to collapse or expand that section.
 - **Click code-language badge** (top-right of fenced blocks) to copy code to clipboard.
 
 ## Markdown and rendering features

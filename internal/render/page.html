@@ -197,23 +197,76 @@
     .md-root :is(h1, h2, h3, h4, h5, h6) > a.anchor {
       position: absolute;
       left: 0;
-      top: 0;
-      transform: translateX(calc(-100% - 0.3em));
-      opacity: 0;
+      top: 50%;
+      transform: translateX(calc(-100% - 0.35rem)) translateY(-50%);
+      opacity: 1;
+      width: 2rem;
+      height: 2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       margin: 0;
+      color: var(--text-muted);
+      font-size: 0;
       text-decoration: none !important;
-      transition: opacity 120ms ease;
+      border-radius: 999px;
+      border: 0;
+      <!-- background: rgba(26, 26, 26, 0.78); -->
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
     }
 
-    .md-root :is(h1, h2, h3, h4, h5, h6):is(:hover, :focus-within) {
+    .md-root :is(h1, h2, h3) > a.anchor::before {
+      content: "v";
+      font-size: 1.08rem;
+      line-height: 1;
+      transform: rotate(0deg);
+      transition: transform 120ms ease;
+    }
+
+    .md-root :is(h1, h2, h3).is-fold-collapsed > a.anchor::before {
+      transform: rotate(-90deg);
+    }
+
+    .md-root :is(h4, h5, h6) > a.anchor {
+      display: none;
+    }
+
+    .md-root :is(h1, h2, h3, h4, h5, h6):hover,
+    .md-root :is(h1, h2, h3, h4, h5, h6):has(> a.anchor:focus-visible) {
       color: var(--accent);
       text-decoration: underline;
       text-underline-offset: 0.12em;
       cursor: pointer;
     }
 
-    .md-root :is(h1, h2, h3, h4, h5, h6):is(:hover, :focus-within) > a.anchor {
-      opacity: 1;
+    .md-root :is(h1, h2, h3, h4, h5, h6):hover > a.anchor,
+    .md-root :is(h1, h2, h3, h4, h5, h6):has(> a.anchor:focus-visible) > a.anchor,
+    .md-root :is(h1, h2, h3).is-fold-collapsed > a.anchor {
+      color: var(--accent);
+      background: rgba(26, 26, 26, 0.95);
+    }
+
+    .md-root :is(h1, h2, h3, h4, h5, h6) > a.anchor:focus {
+      outline: none;
+    }
+
+    .md-root :is(h1, h2, h3, h4, h5, h6) > a.anchor:focus-visible {
+      outline: 1px solid rgba(253, 128, 0, 0.55);
+      outline-offset: 2px;
+    }
+
+    .md-root :is(h1, h2, h3, h4, h5, h6) > a.anchor:focus:not(:focus-visible) {
+      outline: none;
+    }
+
+    .md-root :is(h1, h2, h3).is-fold-collapsed {
+      color: var(--text-strong);
+    }
+
+    .md-root .is-fold-hidden {
+      display: none !important;
     }
 
     .md-root p,
@@ -683,6 +736,11 @@
         min-height: calc(100vh - 80px);
       }
 
+      .md-root :is(h1, h2, h3, h4, h5, h6) > a.anchor {
+        width: 2.2rem;
+        height: 2.2rem;
+      }
+
       :root {
         --follow-tail-space: clamp(180px, 48vh, 460px);
       }
@@ -709,6 +767,8 @@
       var DEFAULT_FILENAME = "[No Name]";
       var SELECTOR_LINE = "[data-md-line]";
       var SELECTOR_HEADING = "h1, h2, h3, h4, h5, h6";
+      var SELECTOR_FOLDABLE_HEADING = "h1, h2, h3";
+      var SELECTOR_HEADING_ANCHOR = 'a.anchor[href^="#"]';
       var SELECTOR_WIKILINK = 'a[href^="wikilink:"]';
       var SELECTOR_HASH_LINK = 'a[href^="#"]';
       var SELECTOR_INTERACTIVE = "a[href], button, input, textarea, select, summary";
@@ -750,6 +810,7 @@
       var headingClickTimer = 0;
       var pendingRenderScrollTop = null;
       var programmaticScrollTop = null;
+      var collapsedHeadings = Object.create(null);
 
       function updateTitle() {
         document.title = (isConnected ? "" : "! ") + currentFilename;
@@ -848,6 +909,222 @@
         }
       }
 
+      function isHeadingElement(el) {
+        return !!(el && typeof el.tagName === "string" && /^H[1-6]$/.test(el.tagName));
+      }
+
+      function isFoldableHeading(el) {
+        return !!(el && typeof el.matches === "function" && el.matches(SELECTOR_FOLDABLE_HEADING));
+      }
+
+      function headingLevel(heading) {
+        if (!heading || typeof heading.tagName !== "string") return 7;
+        return toInt(String(heading.tagName).slice(1), 7);
+      }
+
+      function headingPlainText(heading) {
+        if (!(heading instanceof HTMLElement)) return "";
+
+        var clone = heading.cloneNode(true);
+        var ornaments = clone.querySelectorAll("a.anchor");
+        for (var i = 0; i < ornaments.length; i++) {
+          ornaments[i].remove();
+        }
+
+        return (clone.textContent || "").replace(/\s+/g, " ").trim();
+      }
+
+      function headingFoldKey(heading) {
+        if (!(heading instanceof HTMLElement)) return "";
+        if (heading.id) {
+          return "id:" + heading.id;
+        }
+
+        var line = heading.getAttribute("data-md-line") || "";
+        var text = headingPlainText(heading);
+        if (!line && !text) return "";
+        return "line:" + line + ":" + text;
+      }
+
+      function headingSectionNodes(heading) {
+        if (!(heading instanceof HTMLElement)) return [];
+
+        var level = headingLevel(heading);
+        var out = [];
+        for (var node = heading.nextElementSibling; node; node = node.nextElementSibling) {
+          if (isHeadingElement(node) && headingLevel(node) <= level) {
+            break;
+          }
+          out.push(node);
+        }
+        return out;
+      }
+
+      function headingAnchorEl(heading) {
+        if (!(heading instanceof HTMLElement)) return null;
+        var anchor = heading.querySelector(SELECTOR_HEADING_ANCHOR);
+        return anchor instanceof HTMLAnchorElement ? anchor : null;
+      }
+
+      function updateHeadingAnchorState(heading, collapsed, collapsible) {
+        if (!(heading instanceof HTMLElement)) return;
+
+        heading.classList.toggle("is-fold-collapsed", !!collapsed);
+
+        var anchor = headingAnchorEl(heading);
+        if (!(anchor instanceof HTMLAnchorElement)) return;
+
+        if (!collapsible) {
+          anchor.removeAttribute("aria-expanded");
+          anchor.removeAttribute("aria-label");
+          anchor.removeAttribute("data-fold-toggle");
+          anchor.removeAttribute("role");
+          anchor.setAttribute("title", "Jump to heading");
+          return;
+        }
+
+        var action = collapsed ? "Expand" : "Collapse";
+        anchor.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        anchor.setAttribute("aria-label", action + " section");
+        anchor.setAttribute("data-fold-toggle", "true");
+        anchor.setAttribute("role", "button");
+        anchor.setAttribute("title", action + " section");
+      }
+
+      function clearHeadingFolds(rootEl) {
+        if (!rootEl) return;
+
+        var hiddenNodes = rootEl.querySelectorAll(".is-fold-hidden");
+        for (var i = 0; i < hiddenNodes.length; i++) {
+          hiddenNodes[i].classList.remove("is-fold-hidden");
+        }
+
+        var headings = rootEl.querySelectorAll(SELECTOR_FOLDABLE_HEADING);
+        for (var j = 0; j < headings.length; j++) {
+          var heading = headings[j];
+          heading.classList.remove("is-fold-collapsed");
+          heading.removeAttribute("data-fold-key");
+          updateHeadingAnchorState(heading, false, false);
+        }
+      }
+
+      function refreshHeadingFolds(rootEl) {
+        if (!rootEl) return;
+
+        clearHeadingFolds(rootEl);
+
+        var headings = rootEl.querySelectorAll(SELECTOR_FOLDABLE_HEADING);
+        var activeKeys = Object.create(null);
+
+        for (var i = 0; i < headings.length; i++) {
+          var heading = headings[i];
+          var sectionNodes = headingSectionNodes(heading);
+          if (sectionNodes.length === 0) continue;
+
+          var key = headingFoldKey(heading);
+          if (!key) continue;
+
+          activeKeys[key] = true;
+          heading.setAttribute("data-fold-key", key);
+
+          var collapsed = !!collapsedHeadings[key];
+          updateHeadingAnchorState(heading, collapsed, true);
+
+          if (!collapsed) continue;
+          for (var j = 0; j < sectionNodes.length; j++) {
+            sectionNodes[j].classList.add("is-fold-hidden");
+          }
+        }
+
+        for (var key in collapsedHeadings) {
+          if (!activeKeys[key]) {
+            delete collapsedHeadings[key];
+          }
+        }
+      }
+
+      function isElementFoldHidden(el) {
+        if (!(el instanceof Element)) return false;
+        return !!(el.classList.contains("is-fold-hidden") || el.closest(".is-fold-hidden"));
+      }
+
+      function sectionContainsNode(heading, target) {
+        if (!(heading instanceof HTMLElement) || !(target instanceof Element)) return false;
+
+        var sectionNodes = headingSectionNodes(heading);
+        for (var i = 0; i < sectionNodes.length; i++) {
+          var node = sectionNodes[i];
+          if (node === target || node.contains(target)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      function findContainingCollapsedHeading(target) {
+        if (!(target instanceof Element) || !root.contains(target)) return null;
+
+        for (var node = target; node && node !== root; node = node.parentElement) {
+          for (var sibling = node.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+            if (!isFoldableHeading(sibling)) continue;
+
+            var key = sibling.getAttribute("data-fold-key") || headingFoldKey(sibling);
+            if (!key || !collapsedHeadings[key]) continue;
+            if (sectionContainsNode(sibling, node)) {
+              return sibling;
+            }
+          }
+        }
+
+        return null;
+      }
+
+      function syncLineMapAfterFoldChange() {
+        buildLineMap();
+        if (lastCursorLine !== null) {
+          highlightLine(lastCursorLine);
+          return;
+        }
+        setActiveLine(null);
+      }
+
+      function expandCollapsedAncestorsForNode(target) {
+        var changed = false;
+
+        while (isElementFoldHidden(target)) {
+          var heading = findContainingCollapsedHeading(target);
+          if (!(heading instanceof HTMLElement)) break;
+
+          var key = heading.getAttribute("data-fold-key") || headingFoldKey(heading);
+          if (!key || !collapsedHeadings[key]) break;
+
+          delete collapsedHeadings[key];
+          refreshHeadingFolds(root);
+          changed = true;
+        }
+
+        if (changed) {
+          syncLineMapAfterFoldChange();
+        }
+      }
+
+      function toggleHeadingFold(heading) {
+        if (!(heading instanceof HTMLElement)) return;
+
+        var key = heading.getAttribute("data-fold-key") || headingFoldKey(heading);
+        if (!key) return;
+
+        if (collapsedHeadings[key]) {
+          delete collapsedHeadings[key];
+        } else {
+          collapsedHeadings[key] = true;
+        }
+
+        refreshHeadingFolds(root);
+        syncLineMapAfterFoldChange();
+      }
+
       function enableTaskListCheckboxes(rootEl) {
         if (!rootEl) return;
 
@@ -936,6 +1213,8 @@
 
         for (var i = 0; i < candidates.length; i++) {
           var el = candidates[i];
+          if (isElementFoldHidden(el)) continue;
+
           var line = toInt(el.getAttribute("data-md-line"), NaN);
           if (!Number.isFinite(line)) continue;
 
@@ -1208,9 +1487,10 @@
         updateTitle();
 
         latestRev = toInt(msg.rev, latestRev);
-        buildLineMap();
         enableTaskListCheckboxes(root);
         syncCodeBlockLanguages(root);
+        refreshHeadingFolds(root);
+        buildLineMap();
         typesetMath(root);
 
         if (pendingRenderScrollTop !== null) {
@@ -1356,6 +1636,16 @@
         sendToggleCheckbox(line);
       }
 
+      function foldableHeadingFromAnchor(anchor) {
+        if (!(anchor instanceof HTMLAnchorElement)) return null;
+
+        var heading = anchor.closest(SELECTOR_FOLDABLE_HEADING);
+        if (!(heading instanceof HTMLElement)) return null;
+        if (headingAnchorEl(heading) !== anchor) return null;
+        if (anchor.getAttribute("data-fold-toggle") !== "true") return null;
+        return heading;
+      }
+
       function navigateToHashAnchor(href) {
         var fragmentHref = normalizeHashHref(href);
         if (!fragmentHref) return false;
@@ -1364,6 +1654,7 @@
         if (fragmentHref !== "#") {
           var target = lookupHashTarget(fragmentHref.slice(1));
           if (!(target instanceof HTMLElement)) return false;
+          expandCollapsedAncestorsForNode(target);
           nextTop = topForStartAlignedElement(target);
         }
 
@@ -1379,6 +1670,14 @@
 
         var anchor = closestFromEvent(event, SELECTOR_HASH_LINK);
         if (!(anchor instanceof HTMLAnchorElement)) return;
+
+        var foldHeading = foldableHeadingFromAnchor(anchor);
+        if (foldHeading) {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleHeadingFold(foldHeading);
+          return;
+        }
 
         event.preventDefault();
         event.stopPropagation();
