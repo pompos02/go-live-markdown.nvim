@@ -192,7 +192,7 @@
       color: #4a8dff;
       font-weight: 700;
       text-decoration: none;
-      cursor: default;
+      cursor: pointer;
     }
 
     .md-root :is(h1, h2, h3, h4, h5, h6) > a.anchor {
@@ -713,6 +713,7 @@
       var SELECTOR_LINE = "[data-md-line]";
       var SELECTOR_HEADING = "h1, h2, h3, h4, h5, h6";
       var SELECTOR_WIKILINK = 'a[href^="wikilink:"]';
+      var SELECTOR_HASH_LINK = 'a[href^="#"]';
       var SELECTOR_INTERACTIVE = "a[href], button, input, textarea, select, summary";
       var SELECTOR_CODE_BADGE = ".code-lang-copy";
       var SCROLL_KEYS = {
@@ -730,6 +731,7 @@
       var HEADING_CLICK_DELAY_MS = 240;
       var HEADING_NAV_COOLDOWN_MS = 900;
       var FOLLOW_SNAP_DISTANCE_PX = 0.6;
+      var PROGRAMMATIC_SCROLL_TOLERANCE_PX = 2;
       var COMFORT_TOP = 0.3;
       var COMFORT_BOTTOM = 0.3;
       var COPY_FLASH_MS = 220;
@@ -749,6 +751,8 @@
       var currentFilename = DEFAULT_FILENAME;
       var isConnected = false;
       var headingClickTimer = 0;
+      var pendingRenderScrollTop = null;
+      var programmaticScrollTop = null;
 
       function updateTitle() {
         document.title = (isConnected ? "" : "! ") + currentFilename;
@@ -844,6 +848,15 @@
         for (var j = 0; j < preBlocks.length; j++) {
           var preEl = preBlocks[j];
           ensureCodeCopyBadge(preEl, preEl.getAttribute("data-lang"));
+        }
+      }
+
+      function enableTaskListCheckboxes(rootEl) {
+        if (!rootEl) return;
+
+        var checkboxes = rootEl.querySelectorAll('input[type="checkbox"]');
+        for (var i = 0; i < checkboxes.length; i++) {
+          checkboxes[i].removeAttribute("disabled");
         }
       }
 
@@ -951,6 +964,63 @@
         return nextTop;
       }
 
+      function setProgrammaticScrollTop(top) {
+        programmaticScrollTop = clampScrollTop(top);
+      }
+
+      function consumeProgrammaticScroll() {
+        if (programmaticScrollTop === null) return false;
+        var delta = Math.abs(getScrollTop() - programmaticScrollTop);
+        programmaticScrollTop = null;
+        return delta <= PROGRAMMATIC_SCROLL_TOLERANCE_PX;
+      }
+
+      function scrollWindowToTop(top) {
+        var clampedTop = clampScrollTop(top);
+        setProgrammaticScrollTop(clampedTop);
+        window.scrollTo({ top: clampedTop, behavior: "auto" });
+      }
+
+      function topForStartAlignedElement(target) {
+        return getScrollTop() + target.getBoundingClientRect().top;
+      }
+
+      function normalizeHashHref(href) {
+        if (typeof href !== "string") return "";
+        var trimmed = href.trim();
+        if (!trimmed || trimmed.charAt(0) !== "#") return "";
+        return trimmed;
+      }
+
+      function decodeHashId(value) {
+        if (typeof value !== "string") return "";
+        try {
+          return decodeURIComponent(value);
+        } catch (_) {
+          return value;
+        }
+      }
+
+      function lookupHashTarget(fragment) {
+        if (typeof fragment !== "string") return null;
+        var decoded = decodeHashId(fragment);
+        var target = document.getElementById(decoded);
+        if (target) return target;
+        if (decoded !== fragment) {
+          return document.getElementById(fragment);
+        }
+        return null;
+      }
+
+      function updateHashWithoutNativeScroll(href) {
+        if (!href || href.charAt(0) !== "#") return;
+        if (!window.history) return;
+
+        if (typeof window.history.replaceState === "function") {
+          window.history.replaceState(null, "", href);
+        }
+      }
+
       function stopFollowAnimation() {
         if (followRaf) {
           cancelAnimationFrame(followRaf);
@@ -996,7 +1066,7 @@
         var distance = targetTop - currentTop;
 
         if (Math.abs(distance) < FOLLOW_SNAP_DISTANCE_PX) {
-          window.scrollTo({ top: targetTop, behavior: "auto" });
+          scrollWindowToTop(targetTop);
           stopFollowAnimation();
           return;
         }
@@ -1012,7 +1082,7 @@
         var step = Math.max(-maxStep, Math.min(maxStep, unclampedStep));
         var nextTop = clampScrollTop(currentTop + step);
 
-        window.scrollTo({ top: nextTop, behavior: "auto" });
+        scrollWindowToTop(nextTop);
         followRaf = requestAnimationFrame(stepFollow);
       }
 
@@ -1022,7 +1092,7 @@
 
         if (force) {
           stopFollowAnimation();
-          window.scrollTo({ top: clampedTop, behavior: "auto" });
+          scrollWindowToTop(clampedTop);
           return;
         }
 
@@ -1131,8 +1201,17 @@
 
         latestRev = toInt(msg.rev, latestRev);
         buildLineMap();
+        enableTaskListCheckboxes(root);
         syncCodeBlockLanguages(root);
         typesetMath(root);
+
+        if (pendingRenderScrollTop !== null) {
+          var restoreTop = clampScrollTop(pendingRenderScrollTop);
+          pendingRenderScrollTop = null;
+          scrollWindowToTop(restoreTop);
+          followTargetTop = restoreTop;
+          return;
+        }
 
         if (lastCursorLine !== null) {
           scrollToLine(lastCursorLine, false);
@@ -1237,6 +1316,69 @@
         );
       }
 
+      function sendToggleCheckbox(line) {
+        if (!Number.isFinite(line) || line < 1) return;
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+        suppressAutoFollow(MANUAL_SCROLL_COOLDOWN_MS);
+        pendingRenderScrollTop = getScrollTop();
+        socket.send(
+          JSON.stringify({
+            type: "toggle_checkbox",
+            line: line,
+            rev: latestRev,
+          })
+        );
+      }
+
+      function handleCheckboxClick(event) {
+        if (!isPrimaryPlainClick(event)) return;
+
+        var checkbox = closestFromEvent(event, 'input[type="checkbox"]');
+        if (!(checkbox instanceof HTMLInputElement)) return;
+
+        var lineEl = checkbox.closest(SELECTOR_LINE);
+        if (!lineEl) return;
+
+        var line = toInt(lineEl.getAttribute("data-md-line"), NaN);
+        if (!Number.isFinite(line) || line < 1) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        sendToggleCheckbox(line);
+      }
+
+      function navigateToHashAnchor(href) {
+        var fragmentHref = normalizeHashHref(href);
+        if (!fragmentHref) return false;
+
+        var nextTop = 0;
+        if (fragmentHref !== "#") {
+          var target = lookupHashTarget(fragmentHref.slice(1));
+          if (!(target instanceof HTMLElement)) return false;
+          nextTop = topForStartAlignedElement(target);
+        }
+
+        suppressAutoFollow(HEADING_NAV_COOLDOWN_MS);
+        updateHashWithoutNativeScroll(fragmentHref);
+        scrollWindowToTop(nextTop);
+        suppressAutoFollow(HEADING_NAV_COOLDOWN_MS);
+        return true;
+      }
+
+      function handleHashLinkClick(event) {
+        if (!isPrimaryPlainClick(event)) return;
+
+        var anchor = closestFromEvent(event, SELECTOR_HASH_LINK);
+        if (!(anchor instanceof HTMLAnchorElement)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        var href = anchor.getAttribute("href") || "";
+        navigateToHashAnchor(href);
+      }
+
       function pickHeadingFromEvent(event) {
         var heading = closestFromEvent(event, SELECTOR_HEADING);
         if (!(heading instanceof HTMLElement)) return null;
@@ -1277,26 +1419,14 @@
         if (!href && heading.id) {
           href = "#" + heading.id;
         }
-        if (!href || href.charAt(0) !== "#") return;
-
-        suppressAutoFollow(HEADING_NAV_COOLDOWN_MS);
-
-        if (window.location.hash !== href) {
-          window.location.hash = href;
-          setTimeout(function () {
-            suppressAutoFollow(HEADING_NAV_COOLDOWN_MS);
-          }, 0);
-          return;
-        }
-
-        if (heading.scrollIntoView) {
-          heading.scrollIntoView({ block: "start", behavior: "auto" });
-        }
-        suppressAutoFollow(HEADING_NAV_COOLDOWN_MS);
+        navigateToHashAnchor(href);
       }
 
       function handleHeadingClick(event) {
         if (!isPrimaryPlainClick(event)) return;
+
+        var targetEl = eventTargetElement(event);
+        if (isInteractiveTarget(targetEl)) return;
 
         var heading = pickHeadingFromEvent(event);
         if (!heading) return;
@@ -1334,6 +1464,15 @@
           window.addEventListener(manualEvents[i], markManualScrollIntent, { passive: true });
         }
 
+        window.addEventListener(
+          "scroll",
+          function () {
+            if (consumeProgrammaticScroll()) return;
+            markManualScrollIntent();
+          },
+          { passive: true }
+        );
+
         window.addEventListener("keydown", function (event) {
           if (isScrollKey(event)) {
             markManualScrollIntent();
@@ -1342,6 +1481,8 @@
 
         root.addEventListener("click", handleWikilinkClick);
         root.addEventListener("auxclick", handleWikilinkClick);
+        root.addEventListener("click", handleHashLinkClick);
+        root.addEventListener("click", handleCheckboxClick);
         root.addEventListener("click", handleCodeLangClick);
         root.addEventListener("click", handleHeadingClick);
         root.addEventListener("dblclick", handlePreviewDoubleClick);

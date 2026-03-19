@@ -8,17 +8,26 @@ const (
 	MessageTypeCursor = "cursor"
 	// MessageTypeGoToLine asks Neovim to move its cursor to a source line.
 	MessageTypeGoToLine = "go_to_line"
+	// MessageTypeToggleCheckbox asks Neovim to toggle a markdown task checkbox.
+	MessageTypeToggleCheckbox = "toggle_checkbox"
 )
 
 // IncomingMessage is the minimal envelope used to route browser messages.
 type IncomingMessage struct {
-	Type string
+	Type string `json:"type"`
 }
 
 // GoToLineMessage requests a cursor jump in the editor.
 type GoToLineMessage struct {
 	Type string `json:"type"`
 	Line int    `json:"line"`
+}
+
+// ToggleCheckboxMessage requests a task-list checkbox toggle in the editor.
+type ToggleCheckboxMessage struct {
+	Type string `json:"type"`
+	Line int    `json:"line"`
+	Rev  uint64 `json:"rev"`
 }
 
 // RenderMessage carries rendered HTML and revision metadata to the browser.

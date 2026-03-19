@@ -50,3 +50,8 @@ func (s *LivePreview) PublishCursor(line int, col int) error {
 func (s *LivePreview) SetGoToLineHandler(fn func(contracts.GoToLineMessage)) {
 	s.preview.SetGoToLineHandler(fn)
 }
+
+// SetToggleCheckboxHandler registers a callback for browser-initiated checkbox toggles.
+func (s *LivePreview) SetToggleCheckboxHandler(fn func(contracts.ToggleCheckboxMessage)) {
+	s.preview.SetToggleCheckboxHandler(fn)
+}

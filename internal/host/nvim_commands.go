@@ -4,6 +4,7 @@ package host
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 
 	"go-live-markdown/internal/app"
 	"go-live-markdown/internal/contracts"
@@ -11,6 +12,8 @@ import (
 	"github.com/neovim/go-client/nvim"
 	"github.com/neovim/go-client/nvim/plugin"
 )
+
+var taskListMarkerPattern = regexp.MustCompile(`^(\s*(?:[-*+]|\d+[.)])\s+\[)( |x|X)(\])`)
 
 // Commands is a state container for Neovim command handlers.
 // It tracks the active buffer and delegates preview functionality
@@ -32,6 +35,9 @@ func NewCommands() *Commands {
 
 	preview.SetGoToLineHandler(func(msg contracts.GoToLineMessage) {
 		c.handleGoToLine(msg)
+	})
+	preview.SetToggleCheckboxHandler(func(msg contracts.ToggleCheckboxMessage) {
+		c.handleToggleCheckbox(msg)
 	})
 	return c
 }
@@ -175,5 +181,62 @@ func (c *Commands) handleGoToLine(msg contracts.GoToLineMessage) {
 	_ = v.Command("normal! zz")
 	c.lastCursorLine = line
 	c.lastCursorCol = 0
+}
 
+func (c *Commands) handleToggleCheckbox(msg contracts.ToggleCheckboxMessage) {
+	if !c.active || c.nv == nil {
+		return
+	}
+	if msg.Line < 1 {
+		return
+	}
+
+	v := c.nv
+
+	buf, err := v.CurrentBuffer()
+	if err != nil {
+		return
+	}
+
+	lineIndex := msg.Line - 1
+	lines, err := v.BufferLines(buf, lineIndex, lineIndex+1, true)
+	if err != nil || len(lines) != 1 {
+		return
+	}
+
+	updatedLine, changed := toggleCheckboxLine(lines[0])
+	if !changed {
+		return
+	}
+
+	if err := v.SetBufferLines(buf, lineIndex, lineIndex+1, true, [][]byte{updatedLine}); err != nil {
+		return
+	}
+
+	_ = c.publishBuffer(v)
+}
+
+func toggleCheckboxLine(line []byte) ([]byte, bool) {
+	matches := taskListMarkerPattern.FindSubmatchIndex(line)
+	if matches == nil {
+		return line, false
+	}
+
+	stateStart := matches[4]
+	stateEnd := matches[5]
+
+	next := byte('x')
+	if line[stateStart] == 'x' || line[stateStart] == 'X' {
+		next = ' '
+	}
+
+	out := append([]byte(nil), line...)
+	out[stateStart] = next
+	if stateEnd-stateStart > 1 {
+		for i := stateStart + 1; i < stateEnd; i++ {
+			out[i] = ' '
+		}
+	}
+
+	return out, true
 }

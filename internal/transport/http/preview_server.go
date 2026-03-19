@@ -32,8 +32,10 @@ type PreviewServer struct {
 	server  *http.Server
 
 	// OnGoToLine is invoked when the browser requests a jump to a source line.
-	OnGoToLine     func(contracts.GoToLineMessage)
-	browserInbound chan []byte
+	OnGoToLine func(contracts.GoToLineMessage)
+	// OnToggleCheckbox is invoked when the browser requests a task toggle.
+	OnToggleCheckbox func(contracts.ToggleCheckboxMessage)
+	browserInbound   chan []byte
 
 	updates    chan renderPayload
 	cursors    chan contracts.CursorMessage
@@ -158,6 +160,11 @@ func (m *PreviewServer) SetGoToLineHandler(fn func(contracts.GoToLineMessage)) {
 	m.OnGoToLine = fn
 }
 
+// SetToggleCheckboxHandler registers the callback for browser checkbox toggle requests.
+func (m *PreviewServer) SetToggleCheckboxHandler(fn func(contracts.ToggleCheckboxMessage)) {
+	m.OnToggleCheckbox = fn
+}
+
 // handleAsset serves local markdown assets via encoded absolute paths.
 func (m *PreviewServer) handleAsset(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
@@ -273,6 +280,17 @@ func (m *PreviewServer) runLoop() {
 				}
 				if m.OnGoToLine != nil {
 					m.OnGoToLine(msg)
+				}
+			case contracts.MessageTypeToggleCheckbox:
+				var msg contracts.ToggleCheckboxMessage
+				if err := json.Unmarshal(raw, &msg); err != nil {
+					continue
+				}
+				if msg.Rev != lastRender.Rev {
+					continue
+				}
+				if m.OnToggleCheckbox != nil {
+					m.OnToggleCheckbox(msg)
 				}
 			}
 
