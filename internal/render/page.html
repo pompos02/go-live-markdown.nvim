@@ -34,9 +34,8 @@
       --table-head: #222222;
       --table-row: #1a1a1a;
       --table-row-alt: #1e1e1e;
-      --task-bg: #1f1a14;
-      --task-border: #4a3828;
-      --task-done: #888888;
+      --task-strike: rgba(221, 221, 221, 0.28);
+      --task-done: #a4a4a4;
       --code-bg: #333333;
       --inline-bg: #333333;
       --alert-note: #4493f8;
@@ -483,7 +482,7 @@
       background: var(--bg);
       vertical-align: middle;
       margin-right: 8px;
-      cursor: default;
+      cursor: pointer;
       position: relative;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
@@ -518,11 +517,7 @@
     .md-root ul.contains-task-list > li {
       list-style: none;
       margin-left: -0.5em;
-      padding: 0.32em 0.55em 0.35em 0.45em;
-      border: 1px solid var(--task-border);
-      border-radius: 6px;
-      background: linear-gradient(180deg, var(--task-bg), #1a1510);
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.32);
+      padding: 0;
     }
 
     .md-root li.task-list-item + li.task-list-item,
@@ -532,9 +527,11 @@
 
     .md-root li.task-list-item:has(> input[type="checkbox"]:checked),
     .md-root ul.contains-task-list > li:has(> input[type="checkbox"]:checked) {
-      border-color: #6a5038;
-      background: linear-gradient(180deg, rgba(80, 60, 40, 0.9), var(--accent-soft));
       color: var(--task-done);
+      text-decoration-line: line-through;
+      text-decoration-color: var(--task-strike);
+      text-decoration-thickness: 1.6px;
+      text-decoration-skip-ink: none;
     }
 
     /* Alert/callout blocks from markdown extensions. */
@@ -856,7 +853,18 @@
 
         var checkboxes = rootEl.querySelectorAll('input[type="checkbox"]');
         for (var i = 0; i < checkboxes.length; i++) {
-          checkboxes[i].removeAttribute("disabled");
+          var checkbox = checkboxes[i];
+          checkbox.removeAttribute("disabled");
+
+          var itemEl = checkbox.parentElement;
+          if (itemEl && itemEl.tagName === "LI") {
+            itemEl.classList.add("task-list-item");
+
+            var listEl = itemEl.parentElement;
+            if (listEl && (listEl.tagName === "UL" || listEl.tagName === "OL")) {
+              listEl.classList.add("contains-task-list");
+            }
+          }
         }
       }
 
