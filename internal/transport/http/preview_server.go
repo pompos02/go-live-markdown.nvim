@@ -20,6 +20,7 @@ import (
 
 type renderPayload struct {
 	html     string
+	toc      []contracts.TOCItem
 	filename string
 }
 
@@ -70,7 +71,7 @@ func (m *PreviewServer) URL() string {
 }
 
 // StartOrUpdate starts the preview server on first call and publishes new HTML.
-func (m *PreviewServer) StartOrUpdate(fragment string, path string) error {
+func (m *PreviewServer) StartOrUpdate(fragment string, toc []contracts.TOCItem, path string) error {
 	if !m.started {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", m.handleIndex)
@@ -94,7 +95,7 @@ func (m *PreviewServer) StartOrUpdate(fragment string, path string) error {
 	}
 
 	filename := filepath.Base(path)
-	m.updates <- renderPayload{html: fragment, filename: filename}
+	m.updates <- renderPayload{html: fragment, toc: toc, filename: filename}
 	return nil
 }
 
@@ -212,6 +213,7 @@ func (m *PreviewServer) runLoop() {
 		case update := <-m.updates:
 			lastRender.Rev++
 			lastRender.HTML = update.html
+			lastRender.TOC = update.toc
 			lastRender.Filename = update.filename
 
 			if conn == nil {

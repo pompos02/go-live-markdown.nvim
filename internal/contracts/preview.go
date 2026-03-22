@@ -30,12 +30,21 @@ type ToggleCheckboxMessage struct {
 	Rev  uint64 `json:"rev"`
 }
 
+// TOCItem represents a single table-of-contents heading entry.
+type TOCItem struct {
+	ID    string `json:"id"`
+	Text  string `json:"text"`
+	Level int    `json:"level"`
+	Line  int    `json:"line"`
+}
+
 // RenderMessage carries rendered HTML and revision metadata to the browser.
 type RenderMessage struct {
-	Type     string `json:"type"`
-	HTML     string `json:"html"`
-	Filename string `json:"filename"`
-	Rev      uint64 `json:"rev"`
+	Type     string    `json:"type"`
+	HTML     string    `json:"html"`
+	TOC      []TOCItem `json:"toc"`
+	Filename string    `json:"filename"`
+	Rev      uint64    `json:"rev"`
 }
 
 // CursorMessage carries cursor position and revision metadata to the browser.

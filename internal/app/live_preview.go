@@ -29,12 +29,22 @@ func (s *LivePreview) URL() string {
 
 // PublishSource renders markdown source and publishes it to the preview server.
 func (s *LivePreview) PublishSource(source []byte, path string) error {
-	fragment, err := s.renderer.ConvertFragmentWithSourcePath(source, path)
+	doc, err := s.renderer.ConvertDocumentWithSourcePath(source, path)
 	if err != nil {
 		return err
 	}
 
-	return s.preview.StartOrUpdate(fragment, path)
+	toc := make([]contracts.TOCItem, 0, len(doc.TOC))
+	for _, item := range doc.TOC {
+		toc = append(toc, contracts.TOCItem{
+			ID:    item.ID,
+			Text:  item.Text,
+			Level: item.Level,
+			Line:  item.Line,
+		})
+	}
+
+	return s.preview.StartOrUpdate(doc.HTML, toc, path)
 }
 
 // PublishCursor forwards the current editor cursor position to the browser.

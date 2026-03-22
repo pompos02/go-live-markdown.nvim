@@ -70,9 +70,121 @@
       background: var(--bg);
     }
 
-    .preview-header {
-      max-width: 860px;
+    .preview-layout {
+      width: min(100%, 1180px);
       margin: 0 auto;
+    }
+
+    .preview-layout.has-toc {
+      display: flex;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .preview-main {
+      flex: 1 1 auto;
+      width: auto;
+      max-width: 860px;
+      min-width: 0;
+      margin: 0 auto;
+    }
+
+    .preview-layout.has-toc .preview-main {
+      margin: 0;
+    }
+
+    .preview-toc {
+      display: none;
+      flex: 0 0 clamp(190px, 21vw, 240px);
+      min-width: 0;
+      align-self: flex-start;
+      position: sticky;
+      top: 18px;
+      max-height: calc(100vh - 36px);
+      padding: 4px 0 10px;
+      overflow: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+    }
+
+    .preview-toc::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .preview-toc::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .preview-toc::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+    }
+
+    .preview-toc::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    .preview-layout.has-toc .preview-toc {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-toc-nav {
+      min-height: 0;
+    }
+
+    .preview-toc-title {
+      margin: 0 0 10px;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .preview-toc-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .preview-toc-item {
+      margin: 0;
+    }
+
+    .preview-toc-link {
+      display: block;
+      padding: 0.35rem 0.7rem;
+      padding-left: calc(0.7rem + (var(--toc-depth, 0) * 0.9rem));
+      color: var(--text-muted);
+      font-size: 0.83rem;
+      line-height: 1.35;
+      text-decoration: none;
+      border-left: 1px solid var(--border);
+      transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+      overflow-wrap: anywhere;
+    }
+
+    .preview-toc-link:hover,
+    .preview-toc-link:focus-visible {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.02);
+      border-left-color: var(--text-strong);
+    }
+
+    .preview-toc-link.is-active {
+      color: var(--text);
+      border-left-color: var(--border);
+      text-decoration: underline;
+      text-decoration-color: var(--accent);
+      text-decoration-thickness: 2px;
+      text-underline-offset: 0.26em;
+    }
+
+    .preview-header {
       padding: 0 22px 8px;
       border-bottom: 1px solid var(--border);
     }
@@ -107,9 +219,7 @@
     }
 
     .md-root {
-      max-width: 860px;
       min-height: 72vh;
-      margin: 0 auto;
       padding: 20px 22px;
       line-height: 1.62;
       font-size: 0.95rem;
@@ -211,7 +321,7 @@
       text-decoration: none !important;
       border-radius: 999px;
       border: 0;
-      <!-- background: rgba(26, 26, 26, 0.78); -->
+      /* background: rgba(26, 26, 26, 0.78); */
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
@@ -722,6 +832,32 @@
       --callout-title-color: var(--alert-caution);
     }
 
+    @media (max-width: 1020px) {
+      .preview-layout.has-toc {
+        display: block;
+      }
+
+      .preview-main {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+
+      .preview-toc {
+        max-width: 860px;
+        margin: 0 auto 16px;
+        position: static;
+        top: auto;
+        max-height: none;
+        overflow: visible;
+        padding: 0 14px;
+      }
+
+      .preview-toc-nav {
+        max-height: none;
+        overflow: visible;
+      }
+    }
+
     @media (max-width: 900px) {
       body {
         padding: 10px;
@@ -748,29 +884,45 @@
   </style>
 </head>
 <body>
-  <header class="preview-header">
-    <div class="preview-filename">
-      <span class="status-dot" id="preview-conn-indicator" aria-label="disconnected"></span>
-      <span id="preview-filename">[No Name]</span>
+  <div class="preview-layout" id="preview-layout">
+    <aside class="preview-toc" id="preview-toc" hidden>
+      <p class="preview-toc-title">Contents</p>
+      <nav class="preview-toc-nav" id="preview-toc-nav" aria-label="Table of contents">
+        <ol class="preview-toc-list" id="preview-toc-list"></ol>
+      </nav>
+    </aside>
+
+    <div class="preview-main">
+      <header class="preview-header">
+        <div class="preview-filename">
+          <span class="status-dot" id="preview-conn-indicator" aria-label="disconnected"></span>
+          <span id="preview-filename">[No Name]</span>
+        </div>
+      </header>
+      <article class="md-root">{{CONTENT}}</article>
     </div>
-  </header>
-  <article class="md-root">{{CONTENT}}</article>
+  </div>
 
   <script>
     (function () {
       var root = document.querySelector(".md-root");
       if (!root) return;
 
+      var layoutEl = document.getElementById("preview-layout");
+      var tocEl = document.getElementById("preview-toc");
+      var tocListEl = document.getElementById("preview-toc-list");
       var filenameEl = document.getElementById("preview-filename");
       var connectionIndicatorEl = document.getElementById("preview-conn-indicator");
 
       var DEFAULT_FILENAME = "[No Name]";
       var SELECTOR_LINE = "[data-md-line]";
       var SELECTOR_HEADING = "h1, h2, h3, h4, h5, h6";
+      var SELECTOR_HEADING_WITH_ID = "h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]";
       var SELECTOR_FOLDABLE_HEADING = "h1, h2, h3";
       var SELECTOR_HEADING_ANCHOR = 'a.anchor[href^="#"]';
       var SELECTOR_WIKILINK = 'a[href^="wikilink:"]';
       var SELECTOR_HASH_LINK = 'a[href^="#"]';
+      var SELECTOR_TOC_LINK = ".preview-toc-link";
       var SELECTOR_INTERACTIVE = "a[href], button, input, textarea, select, summary";
       var SELECTOR_CODE_BADGE = ".code-lang-copy";
       var SCROLL_KEYS = {
@@ -811,6 +963,11 @@
       var pendingRenderScrollTop = null;
       var programmaticScrollTop = null;
       var collapsedHeadings = Object.create(null);
+      var tocItems = [];
+      var tocHeadings = [];
+      var tocLinkById = Object.create(null);
+      var activeTOCId = "";
+      var tocSyncRaf = 0;
 
       function updateTitle() {
         document.title = (isConnected ? "" : "! ") + currentFilename;
@@ -834,6 +991,144 @@
         if (typeof value !== "string") return DEFAULT_FILENAME;
         var trimmed = value.trim();
         return trimmed || DEFAULT_FILENAME;
+      }
+
+      function normalizeTOCItems(items) {
+        if (!Array.isArray(items)) return [];
+
+        var out = [];
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i] || {};
+          var id = typeof item.id === "string" ? item.id.trim() : "";
+          var text = typeof item.text === "string" ? item.text.replace(/\s+/g, " ").trim() : "";
+          if (!id || !text) continue;
+
+          var level = Math.max(1, Math.min(6, toInt(item.level, 1)));
+          var line = toInt(item.line, 0);
+          out.push({
+            id: id,
+            text: text,
+            level: level,
+            line: Number.isFinite(line) ? line : 0,
+          });
+        }
+
+        return out;
+      }
+
+      function setTOCVisibility(hasItems) {
+        var visible = !!hasItems;
+
+        if (layoutEl) {
+          layoutEl.classList.toggle("has-toc", visible);
+        }
+
+        if (tocEl) {
+          tocEl.hidden = !visible;
+        }
+      }
+
+      function isCompactTOCLayout() {
+        return window.innerWidth <= 1020;
+      }
+
+      function revealTOCLink(link) {
+        if (!(link instanceof HTMLElement) || !tocEl || isCompactTOCLayout()) return;
+
+        var containerRect = tocEl.getBoundingClientRect();
+        var linkRect = link.getBoundingClientRect();
+        if (containerRect.height <= 0) return;
+
+        var pad = 12;
+        if (linkRect.top < containerRect.top + pad) {
+          tocEl.scrollTop += linkRect.top - containerRect.top - pad;
+          return;
+        }
+
+        if (linkRect.bottom > containerRect.bottom - pad) {
+          tocEl.scrollTop += linkRect.bottom - containerRect.bottom + pad;
+        }
+      }
+
+      function scheduleTOCActiveSync() {
+        if (tocSyncRaf) return;
+
+        tocSyncRaf = requestAnimationFrame(function () {
+          tocSyncRaf = 0;
+          syncTOCActiveFromScroll(false);
+        });
+      }
+
+      function renderTOC(items) {
+        tocItems = items || [];
+        tocHeadings = [];
+        tocLinkById = Object.create(null);
+        setActiveTOCId("", { reveal: false });
+
+        if (!tocListEl) {
+          setTOCVisibility(tocItems.length > 0);
+          return;
+        }
+
+        tocListEl.textContent = "";
+
+        if (tocItems.length === 0) {
+          setTOCVisibility(false);
+          return;
+        }
+
+        setTOCVisibility(true);
+
+        var baseLevel = tocItems[0].level;
+        for (var i = 1; i < tocItems.length; i++) {
+          if (tocItems[i].level < baseLevel) {
+            baseLevel = tocItems[i].level;
+          }
+        }
+
+        for (var j = 0; j < tocItems.length; j++) {
+          var item = tocItems[j];
+          var li = document.createElement("li");
+          li.className = "preview-toc-item";
+
+          var link = document.createElement("a");
+          link.className = "preview-toc-link";
+          link.href = "#" + encodeURIComponent(item.id);
+          link.textContent = item.text;
+          link.setAttribute("data-id", item.id);
+          link.setAttribute("data-level", String(item.level));
+          link.setAttribute("data-line", String(item.line || 0));
+          link.style.setProperty("--toc-depth", String(Math.max(0, item.level - baseLevel)));
+
+          li.appendChild(link);
+          tocListEl.appendChild(li);
+          tocLinkById[item.id] = link;
+        }
+      }
+
+      function setActiveTOCId(nextId, options) {
+        var opts = options || {};
+        var normalized = typeof nextId === "string" ? nextId.trim() : "";
+        if (!normalized || !tocLinkById[normalized]) {
+          normalized = "";
+        }
+
+        if (activeTOCId === normalized) return;
+
+        if (activeTOCId && tocLinkById[activeTOCId]) {
+          tocLinkById[activeTOCId].classList.remove("is-active");
+          tocLinkById[activeTOCId].removeAttribute("aria-current");
+        }
+
+        activeTOCId = normalized;
+        if (!activeTOCId) return;
+
+        var activeLink = tocLinkById[activeTOCId];
+        activeLink.classList.add("is-active");
+        activeLink.setAttribute("aria-current", "true");
+        if (opts.reveal) {
+          revealTOCLink(activeLink);
+        }
       }
 
       function toElement(node) {
@@ -1048,6 +1343,96 @@
         return !!(el.classList.contains("is-fold-hidden") || el.closest(".is-fold-hidden"));
       }
 
+      function buildTOCHeadingMap() {
+        var headings = root.querySelectorAll(SELECTOR_HEADING_WITH_ID);
+        var out = [];
+
+        for (var i = 0; i < headings.length; i++) {
+          var heading = headings[i];
+          if (!(heading instanceof HTMLElement) || !heading.id) continue;
+
+          out.push({
+            id: heading.id,
+            line: toInt(heading.getAttribute("data-md-line"), 0),
+            el: heading,
+          });
+        }
+
+        tocHeadings = out;
+
+        if (tocHeadings.length === 0 && tocItems.length === 0) {
+          setActiveTOCId("", { reveal: false });
+        }
+      }
+
+      function firstVisibleTOCHeading() {
+        for (var i = 0; i < tocHeadings.length; i++) {
+          if (!isElementFoldHidden(tocHeadings[i].el)) {
+            return tocHeadings[i];
+          }
+        }
+
+        return null;
+      }
+
+      function pickTOCHeadingByLine(line) {
+        if (!Number.isFinite(line) || tocHeadings.length === 0) return null;
+
+        var candidate = null;
+        for (var i = 0; i < tocHeadings.length; i++) {
+          var heading = tocHeadings[i];
+          if (isElementFoldHidden(heading.el)) continue;
+          if (!Number.isFinite(heading.line) || heading.line <= 0) continue;
+          if (heading.line > line) break;
+          candidate = heading;
+        }
+
+        return candidate || firstVisibleTOCHeading();
+      }
+
+      function headingDocumentTop(entry) {
+        if (!entry || !(entry.el instanceof HTMLElement)) return NaN;
+        return getScrollTop() + entry.el.getBoundingClientRect().top;
+      }
+
+      function pickTOCHeadingByScroll() {
+        if (tocHeadings.length === 0) return null;
+
+        var threshold = getScrollTop() + 6;
+        var candidate = null;
+
+        for (var i = 0; i < tocHeadings.length; i++) {
+          var heading = tocHeadings[i];
+          if (isElementFoldHidden(heading.el)) continue;
+
+          var top = headingDocumentTop(heading);
+          if (!Number.isFinite(top)) continue;
+
+          if (top <= threshold) {
+            candidate = heading;
+            continue;
+          }
+
+          if (!candidate) {
+            return heading;
+          }
+
+          break;
+        }
+
+        return candidate || firstVisibleTOCHeading();
+      }
+
+      function syncTOCActiveFromLine(line, reveal) {
+        var heading = pickTOCHeadingByLine(line);
+        setActiveTOCId(heading ? heading.id : "", { reveal: !!reveal });
+      }
+
+      function syncTOCActiveFromScroll(reveal) {
+        var heading = pickTOCHeadingByScroll();
+        setActiveTOCId(heading ? heading.id : "", { reveal: !!reveal });
+      }
+
       function sectionContainsNode(heading, target) {
         if (!(heading instanceof HTMLElement) || !(target instanceof Element)) return false;
 
@@ -1081,12 +1466,15 @@
       }
 
       function syncLineMapAfterFoldChange() {
+        buildTOCHeadingMap();
         buildLineMap();
         if (lastCursorLine !== null) {
           highlightLine(lastCursorLine);
+          syncTOCActiveFromLine(lastCursorLine, false);
           return;
         }
         setActiveLine(null);
+        scheduleTOCActiveSync();
       }
 
       function expandCollapsedAncestorsForNode(target) {
@@ -1480,6 +1868,7 @@
         setActiveLine(null);
 
         root.innerHTML = typeof msg.html === "string" ? msg.html : "";
+        renderTOC(normalizeTOCItems(msg.toc));
         currentFilename = normalizeFilename(msg.filename);
         if (filenameEl) {
           filenameEl.textContent = currentFilename;
@@ -1490,6 +1879,7 @@
         enableTaskListCheckboxes(root);
         syncCodeBlockLanguages(root);
         refreshHeadingFolds(root);
+        buildTOCHeadingMap();
         buildLineMap();
         typesetMath(root);
 
@@ -1498,12 +1888,17 @@
           pendingRenderScrollTop = null;
           scrollWindowToTop(restoreTop);
           followTargetTop = restoreTop;
+          scheduleTOCActiveSync();
           return;
         }
 
         if (lastCursorLine !== null) {
           scrollToLine(lastCursorLine, false);
+          syncTOCActiveFromLine(lastCursorLine, true);
+          return;
         }
+
+        scheduleTOCActiveSync();
       }
 
       function handleCursorMessage(msg) {
@@ -1515,6 +1910,7 @@
 
         lastCursorLine = line;
         scrollToLine(line, false);
+        syncTOCActiveFromLine(line, true);
       }
 
       function scheduleReconnect() {
@@ -1655,6 +2051,9 @@
           var target = lookupHashTarget(fragmentHref.slice(1));
           if (!(target instanceof HTMLElement)) return false;
           expandCollapsedAncestorsForNode(target);
+          if (isHeadingElement(target) && target.id) {
+            setActiveTOCId(target.id, { reveal: true });
+          }
           nextTop = topForStartAlignedElement(target);
         }
 
@@ -1684,6 +2083,32 @@
 
         var href = anchor.getAttribute("href") || "";
         navigateToHashAnchor(href);
+      }
+
+      function handleTOCClick(event) {
+        if (!isPrimaryPlainClick(event)) return;
+
+        var anchor = closestFromEvent(event, SELECTOR_TOC_LINK);
+        if (!(anchor instanceof HTMLAnchorElement)) return;
+        if (!tocEl || !tocEl.contains(anchor)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        var id = anchor.getAttribute("data-id") || "";
+        if (id) {
+          setActiveTOCId(id, { reveal: true });
+        }
+
+        var href = anchor.getAttribute("href") || "";
+        if (navigateToHashAnchor(href)) return;
+
+        var line = toInt(anchor.getAttribute("data-line"), NaN);
+        if (!Number.isFinite(line) || line < 1) return;
+
+        suppressAutoFollow(HEADING_NAV_COOLDOWN_MS);
+        scrollToLine(line, true);
+        syncTOCActiveFromLine(line, true);
       }
 
       function pickHeadingFromEvent(event) {
@@ -1774,11 +2199,16 @@
         window.addEventListener(
           "scroll",
           function () {
+            scheduleTOCActiveSync();
             if (consumeProgrammaticScroll()) return;
             markManualScrollIntent();
           },
           { passive: true }
         );
+
+        window.addEventListener("resize", function () {
+          scheduleTOCActiveSync();
+        });
 
         window.addEventListener("keydown", function (event) {
           if (isScrollKey(event)) {
@@ -1793,6 +2223,10 @@
         root.addEventListener("click", handleCodeLangClick);
         root.addEventListener("click", handleHeadingClick);
         root.addEventListener("dblclick", handlePreviewDoubleClick);
+
+        if (tocEl) {
+          tocEl.addEventListener("click", handleTOCClick);
+        }
       }
 
       bindInputListeners();

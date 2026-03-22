@@ -33,6 +33,20 @@ type Renderer struct {
 	md goldmark.Markdown
 }
 
+// TOCItem represents a single heading entry for the preview table of contents.
+type TOCItem struct {
+	ID    string
+	Text  string
+	Level int
+	Line  int
+}
+
+// Document is the rendered preview payload produced from markdown input.
+type Document struct {
+	HTML string
+	TOC  []TOCItem
+}
+
 //go:embed page.html
 var pageTemplate string
 
@@ -83,10 +97,21 @@ func (previewWikilinkResolver) ResolveWikilink(n *wikilink.Node) ([]byte, error)
 	return append([]byte("wikilink:"), dest...), nil
 }
 
+// ConvertDocument parses markdown source and returns the rendered HTML fragment
+// together with TOC metadata.
+func (r *Renderer) ConvertDocument(source []byte) (Document, error) {
+	return r.ConvertDocumentWithSourcePath(source, "")
+}
+
 // ConvertFragment parses markdown source and returns the HTML fragment
 // with data-md-line attributes attached to block elements.
 func (r *Renderer) ConvertFragment(source []byte) (string, error) {
-	return r.ConvertFragmentWithSourcePath(source, "")
+	doc, err := r.ConvertDocument(source)
+	if err != nil {
+		return "", err
+	}
+
+	return doc.HTML, nil
 }
 
 // ConvertFragmentWithSourcePath parses markdown source and returns the HTML
@@ -95,15 +120,26 @@ func (r *Renderer) ConvertFragment(source []byte) (string, error) {
 // If sourcePath is set, local image destinations are rewritten to the
 // preview asset path format expected by the HTTP layer.
 func (r *Renderer) ConvertFragmentWithSourcePath(source []byte, sourcePath string) (string, error) {
-	doc := r.md.Parser().Parse(text.NewReader(source))
-	decorateAST(doc, source, sourcePath)
-
-	var buf bytes.Buffer
-	if err := r.md.Renderer().Render(&buf, source, doc); err != nil {
+	doc, err := r.ConvertDocumentWithSourcePath(source, sourcePath)
+	if err != nil {
 		return "", err
 	}
 
-	return buf.String(), nil
+	return doc.HTML, nil
+}
+
+// ConvertDocumentWithSourcePath parses markdown source and returns the rendered
+// HTML fragment together with TOC metadata.
+func (r *Renderer) ConvertDocumentWithSourcePath(source []byte, sourcePath string) (Document, error) {
+	doc := r.md.Parser().Parse(text.NewReader(source))
+	toc := decorateAST(doc, source, sourcePath)
+
+	var buf bytes.Buffer
+	if err := r.md.Renderer().Render(&buf, source, doc); err != nil {
+		return Document{}, err
+	}
+
+	return Document{HTML: buf.String(), TOC: toc}, nil
 }
 
 // RenderPage returns a complete HTML page with the markdown rendered inside.
@@ -125,11 +161,13 @@ func (r *Renderer) RenderShell() string {
 // decorateAST walks the AST once and applies render metadata.
 // It attaches data-md-line to block-level elements for cursor sync and,
 // when sourcePath is available, rewrites local image destinations to /@mdfs/.
-func decorateAST(doc ast.Node, source []byte, sourcePath string) {
+func decorateAST(doc ast.Node, source []byte, sourcePath string) []TOCItem {
 	baseDir := ""
 	if sourcePath != "" {
 		baseDir = filepath.Dir(sourcePath)
 	}
+
+	toc := make([]TOCItem, 0, 16)
 
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
@@ -140,6 +178,13 @@ func decorateAST(doc ast.Node, source []byte, sourcePath string) {
 			offset, ok := firstNodeOffset(n)
 			if ok {
 				n.SetAttributeString(mdLineAttribute, strconv.Itoa(offsetToLine(source, offset)))
+			}
+		}
+
+		heading, ok := n.(*ast.Heading)
+		if ok {
+			if item, ok := tocItemFromHeading(heading, source); ok {
+				toc = append(toc, item)
 			}
 		}
 
@@ -183,6 +228,65 @@ func decorateAST(doc ast.Node, source []byte, sourcePath string) {
 
 		return ast.WalkContinue, nil
 	})
+
+	return toc
+}
+
+func tocItemFromHeading(heading *ast.Heading, source []byte) (TOCItem, bool) {
+	if heading == nil {
+		return TOCItem{}, false
+	}
+
+	id := nodeAttributeString(heading, "id")
+	if id == "" {
+		return TOCItem{}, false
+	}
+
+	text := normalizeTOCText(heading.Text(source))
+	if text == "" {
+		return TOCItem{}, false
+	}
+
+	line := 0
+	if offset, ok := firstNodeOffset(heading); ok {
+		line = offsetToLine(source, offset)
+	}
+
+	return TOCItem{
+		ID:    id,
+		Text:  text,
+		Level: heading.Level,
+		Line:  line,
+	}, true
+}
+
+func nodeAttributeString(n ast.Node, name string) string {
+	if n == nil {
+		return ""
+	}
+
+	v, ok := n.AttributeString(name)
+	if !ok {
+		return ""
+	}
+
+	switch typed := v.(type) {
+	case string:
+		return strings.TrimSpace(typed)
+	case []byte:
+		return strings.TrimSpace(string(typed))
+	default:
+		return ""
+	}
+}
+
+func normalizeTOCText(raw []byte) string {
+	parts := bytes.Fields(raw)
+	if len(parts) == 0 {
+		return ""
+	}
+
+	return string(bytes.Join(parts, []byte(" ")))
 }
 
 // shouldAnnotateNode returns true for block-level element types that should
