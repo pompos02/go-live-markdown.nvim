@@ -54,7 +54,76 @@
       --syn-property: #cc8c3c;
       --syn-operator: #dddddd;
       --syn-punctuation: #aaaaaa;
+      --heading-text: #ffffff;
+      --blockquote-text: #aaaaaa;
+      --inline-code-text: #f7f7f7;
+      --code-border: #000000;
+      --code-text: #e4e4ef;
+      --table-grad-start: #1a1a1a;
+      --table-grad-end: #1e1e1e;
+      --table-row-hover: #252525;
+      --hr: #444444;
+      --toc-hover-bg: rgba(255, 255, 255, 0.02);
+      --toc-scroll-thumb: rgba(255, 255, 255, 0.14);
+      --toc-scroll-thumb-hover: rgba(255, 255, 255, 0.22);
+      --anchor-hover-bg: rgba(26, 26, 26, 0.95);
+      --status-dot-ring: rgba(0, 0, 0, 0.35);
+      --theme-toggle-hover: rgba(255, 255, 255, 0.06);
+      --theme-toggle-focus: rgba(253, 128, 0, 0.55);
       --follow-tail-space: clamp(240px, 55vh, 720px);
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #ffffff;
+      --surface: #fbfaf7;
+      --surface-2: #f5f2ec;
+      --border: #d7d1c8;
+      --text: #25211c;
+      --text-strong: #181511;
+      --text-muted: #6f675f;
+      --accent: #c96a00;
+      --accent-soft: rgba(201, 106, 0, 0.12);
+      --cursor-line-bg: rgba(201, 106, 0, 0.08);
+      --table-head: #f2ebe1;
+      --table-row: #fffdf9;
+      --table-row-alt: #faf5ee;
+      --task-strike: rgba(37, 33, 28, 0.22);
+      --task-done: #8a8278;
+      --code-bg: #f7f1e8;
+      --inline-bg: #f3ece3;
+      --alert-note: #2567c9;
+      --alert-tip: #2f8a48;
+      --alert-important: #7d55c7;
+      --alert-warning: #b56a00;
+      --alert-caution: #cf4238;
+      --syn-text: #2d2a26;
+      --syn-comment: #8e784d;
+      --syn-keyword: #9c5f00;
+      --syn-string: #317f35;
+      --syn-number: #bc623f;
+      --syn-function: #3c679d;
+      --syn-constant: #755faf;
+      --syn-variable: #1d1a17;
+      --syn-property: #b36a21;
+      --syn-operator: #4f4a44;
+      --syn-punctuation: #7c746c;
+      --heading-text: #1a1612;
+      --blockquote-text: #5f5851;
+      --inline-code-text: #2d2a26;
+      --code-border: #e1d8ca;
+      --code-text: #2d2a26;
+      --table-grad-start: #fffdf9;
+      --table-grad-end: #faf5ee;
+      --table-row-hover: #f3ece3;
+      --hr: #d9d1c4;
+      --toc-hover-bg: rgba(37, 33, 28, 0.03);
+      --toc-scroll-thumb: rgba(37, 33, 28, 0.16);
+      --toc-scroll-thumb-hover: rgba(37, 33, 28, 0.28);
+      --anchor-hover-bg: rgba(247, 241, 232, 0.98);
+      --status-dot-ring: rgba(255, 255, 255, 0.85);
+      --theme-toggle-hover: rgba(37, 33, 28, 0.06);
+      --theme-toggle-focus: rgba(201, 106, 0, 0.45);
     }
 
     * {
@@ -104,7 +173,7 @@
       padding: 4px 0 10px;
       overflow: auto;
       scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+      scrollbar-color: var(--toc-scroll-thumb) transparent;
     }
 
     .preview-toc::-webkit-scrollbar {
@@ -116,12 +185,12 @@
     }
 
     .preview-toc::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.14);
+      background: var(--toc-scroll-thumb);
       border-radius: 999px;
     }
 
     .preview-toc::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.22);
+      background: var(--toc-scroll-thumb-hover);
     }
 
     .preview-layout.has-toc .preview-toc {
@@ -171,7 +240,7 @@
     .preview-toc-link:hover,
     .preview-toc-link:focus-visible {
       color: var(--text);
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--toc-hover-bg);
       border-left-color: var(--text-strong);
     }
 
@@ -205,12 +274,62 @@
       text-overflow: ellipsis;
     }
 
+    .preview-filename-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .theme-toggle {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin: 0;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      flex: 0 0 auto;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 120ms ease, background 120ms ease;
+    }
+
+    .theme-toggle:hover,
+    .theme-toggle:focus-visible {
+      color: var(--text);
+      background: var(--theme-toggle-hover);
+    }
+
+    .theme-toggle:focus {
+      outline: none;
+    }
+
+    .theme-toggle:focus-visible {
+      outline: 1px solid var(--theme-toggle-focus);
+      outline-offset: 2px;
+    }
+
+    .theme-toggle svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
     .status-dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
       background: var(--alert-caution);
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 0 0 1px var(--status-dot-ring);
       flex: 0 0 auto;
     }
 
@@ -253,7 +372,7 @@
 
     /* Base markdown element styling. */
     .md-root :is(h1, h2, h3, h4, h5, h6) {
-      color: #ffffff;
+      color: var(--heading-text);
       font-family: "Palatino", serif;
       font-weight: 400;
       line-height: 1.28;
@@ -355,7 +474,7 @@
     .md-root :is(h1, h2, h3, h4, h5, h6):has(> a.anchor:focus-visible) > a.anchor,
     .md-root :is(h1, h2, h3).is-fold-collapsed > a.anchor {
       color: var(--accent);
-      background: rgba(26, 26, 26, 0.95);
+      background: var(--anchor-hover-bg);
     }
 
     .md-root :is(h1, h2, h3, h4, h5, h6) > a.anchor:focus {
@@ -402,7 +521,7 @@
       border-left: 2px solid var(--accent);
       margin: 0 0 1em;
       padding: 0 0 0 0.9em;
-      color: #aaaaaa;
+      color: var(--blockquote-text);
       border-radius: 0;
     }
 
@@ -422,7 +541,7 @@
 
     .md-root :not(pre) > code {
       background: var(--inline-bg);
-      color: #f7f7f7;
+      color: var(--inline-code-text);
       padding: 0.15em 0.35em;
       border-radius: 6px;
       border: none;
@@ -430,7 +549,7 @@
 
     .md-root pre {
       position: relative;
-      border: 1px solid #000000;
+      border: 1px solid var(--code-border);
       background: var(--code-bg);
       border-radius: 4px;
       padding: 12px 14px;
@@ -465,7 +584,7 @@
     }
 
     .md-root pre code {
-      color: #e4e4ef;
+      color: var(--code-text);
       padding: 0;
       background: transparent;
       border: 0;
@@ -475,7 +594,7 @@
     .md-root pre.chroma,
     .md-root pre[style] {
       background: var(--code-bg) !important;
-      color: #e4e4ef;
+      color: var(--code-text);
     }
 
     .md-root .chroma .bg {
@@ -587,11 +706,11 @@
       border-collapse: separate;
       border-spacing: 0;
       width: 100%;
-      background: linear-gradient(180deg, #1a1a1a 0%, #1e1e1e 100%);
+      background: linear-gradient(180deg, var(--table-grad-start) 0%, var(--table-grad-end) 100%);
       border: 1px solid var(--border);
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     }
 
     .md-root td,
@@ -619,7 +738,7 @@
     }
 
     .md-root tr:hover td {
-      background: #252525;
+      background: var(--table-row-hover);
     }
 
     .md-root tr > :last-child {
@@ -632,7 +751,7 @@
 
     .md-root hr {
       border: 0;
-      border-top: 1px solid #444444;
+      border-top: 1px solid var(--hr);
     }
 
     /* Task list checkboxes and completed-item visuals. */
@@ -897,7 +1016,8 @@
       <header class="preview-header">
         <div class="preview-filename">
           <span class="status-dot" id="preview-conn-indicator" aria-label="disconnected"></span>
-          <span id="preview-filename">[No Name]</span>
+          <span class="preview-filename-text" id="preview-filename">[No Name]</span>
+          <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch to light mode"></button>
         </div>
       </header>
       <article class="md-root">{{CONTENT}}</article>
@@ -914,8 +1034,11 @@
       var tocListEl = document.getElementById("preview-toc-list");
       var filenameEl = document.getElementById("preview-filename");
       var connectionIndicatorEl = document.getElementById("preview-conn-indicator");
+      var themeToggleEl = document.getElementById("theme-toggle");
 
       var DEFAULT_FILENAME = "[No Name]";
+      var DEFAULT_THEME = "dark";
+      var THEME_STORAGE_KEY = "go-live-markdown-theme";
       var SELECTOR_LINE = "[data-md-line]";
       var SELECTOR_HEADING = "h1, h2, h3, h4, h5, h6";
       var SELECTOR_HEADING_WITH_ID = "h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]";
@@ -969,6 +1092,57 @@
       var tocLinkById = Object.create(null);
       var activeTOCId = "";
       var tocSyncRaf = 0;
+      var currentTheme = DEFAULT_THEME;
+
+      function normalizeTheme(value) {
+        return value === "light" ? "light" : "dark";
+      }
+
+      function systemTheme() {
+        if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) {
+          return "light";
+        }
+
+        return DEFAULT_THEME;
+      }
+
+      function themeToggleIconMarkup(theme) {
+        if (theme === "light") {
+          return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2.2M12 18.8V21M5.64 5.64l1.56 1.56M16.8 16.8l1.56 1.56M3 12h2.2M18.8 12H21M5.64 18.36l1.56-1.56M16.8 7.2l1.56-1.56"/><circle cx="12" cy="12" r="4.2"/></svg>';
+        }
+
+        return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 14.1A8.4 8.4 0 0 1 9.9 3.8a8.9 8.9 0 1 0 10.3 10.3Z"/></svg>';
+      }
+
+      function renderThemeToggle(theme) {
+        if (!themeToggleEl) return;
+
+        var nextTheme = theme === "light" ? "dark" : "light";
+        themeToggleEl.innerHTML = themeToggleIconMarkup(theme);
+        themeToggleEl.setAttribute("aria-label", "Switch to " + nextTheme + " mode");
+        themeToggleEl.setAttribute("title", "Switch to " + nextTheme + " mode");
+      }
+
+      function applyTheme(theme, persist) {
+        currentTheme = normalizeTheme(theme);
+        document.documentElement.setAttribute("data-theme", currentTheme);
+        renderThemeToggle(currentTheme);
+
+        if (persist) {
+          try {
+            window.localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
+          } catch (_) {}
+        }
+      }
+
+      function loadInitialTheme() {
+        var storedTheme = "";
+        try {
+          storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY) || "";
+        } catch (_) {}
+
+        applyTheme(storedTheme || systemTheme(), false);
+      }
 
       function updateTitle() {
         document.title = (isConnected ? "" : "! ") + currentFilename;
@@ -2228,8 +2402,15 @@
         if (tocEl) {
           tocEl.addEventListener("click", handleTOCClick);
         }
+
+        if (themeToggleEl) {
+          themeToggleEl.addEventListener("click", function () {
+            applyTheme(currentTheme === "light" ? "dark" : "light", true);
+          });
+        }
       }
 
+      loadInitialTheme();
       bindInputListeners();
       updateTitle();
       connect();
