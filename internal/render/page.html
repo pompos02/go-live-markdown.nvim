@@ -1017,7 +1017,11 @@
         <div class="preview-filename">
           <span class="status-dot" id="preview-conn-indicator" aria-label="disconnected"></span>
           <span class="preview-filename-text" id="preview-filename">[No Name]</span>
-          <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch to light mode"></button>
+          <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch to light mode">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.2 14.1A8.4 8.4 0 0 1 9.9 3.8a8.9 8.9 0 1 0 10.3 10.3Z"></path>
+            </svg>
+          </button>
         </div>
       </header>
       <article class="md-root">{{CONTENT}}</article>
@@ -1108,10 +1112,10 @@
 
       function themeToggleIconMarkup(theme) {
         if (theme === "light") {
-          return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2.2M12 18.8V21M5.64 5.64l1.56 1.56M16.8 16.8l1.56 1.56M3 12h2.2M18.8 12H21M5.64 18.36l1.56-1.56M16.8 7.2l1.56-1.56"/><circle cx="12" cy="12" r="4.2"/></svg>';
+          return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2.2M12 18.8V21M5.64 5.64l1.56 1.56M16.8 16.8l1.56 1.56M3 12h2.2M18.8 12H21M5.64 18.36l1.56-1.56M16.8 7.2l1.56-1.56" stroke="currentColor" fill="none"/><circle cx="12" cy="12" r="4.2" stroke="currentColor" fill="none"/></svg>';
         }
 
-        return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 14.1A8.4 8.4 0 0 1 9.9 3.8a8.9 8.9 0 1 0 10.3 10.3Z"/></svg>';
+        return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 14.1A8.4 8.4 0 0 1 9.9 3.8a8.9 8.9 0 1 0 10.3 10.3Z" stroke="currentColor" fill="none"/></svg>';
       }
 
       function renderThemeToggle(theme) {
